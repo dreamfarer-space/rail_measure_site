@@ -1,0 +1,222 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>rail_measure · rail_measure</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"><style>
+/* 版式：左目录 168 · 正文 550 · 右旁注 168，三栏居中；窄屏只留正文，旁注随段落内联 */
+:root{
+  --ground:#fafafa; --ink:#171717; --text-2:#525252; --muted:#8f8f8f; --faint:#bdbdbd;
+  --rule:#ebebeb; --well:#f1f1f1; --card:#ffffff; --accent:#2f8a57;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --serif:"EB Garamond","Noto Serif SC","Songti SC",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --column:550px; --rail:168px; --gap:48px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+em{font-family:var(--serif);font-style:italic;font-size:1.06em}
+code,kbd{font:12.5px/1 var(--mono);background:var(--well);padding:2px 5px;border-radius:4px;color:var(--ink)}
+.wrap{display:grid;grid-template-columns:var(--rail) var(--column) var(--rail);column-gap:var(--gap);justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:56px 120px}
+.rail{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));align-self:start;font-size:13.5px;line-height:1.95}
+.rail .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:500;margin-bottom:28px}
+.rail .brand svg{width:26px;height:26px;flex:none}
+.rail ol{list-style:none;margin:0;padding:0}
+.rail a{color:var(--muted);text-decoration:none}
+.rail a:hover,.rail a.on{color:var(--ink)}
+main{min-width:0;grid-column:2}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.top h1{font-size:15px;font-weight:600;margin:0}
+.top h1 span{font-weight:400;color:var(--muted)}
+.lede{font-size:16px;margin:18px 0 0}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;border-block:1px solid var(--rule);padding-block:16px;margin-top:22px}
+.strip img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;filter:grayscale(1) contrast(.9) brightness(1.08);opacity:.85;transition:filter .3s,opacity .3s}
+.strip a:hover img{filter:none;opacity:1}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;color:var(--muted);font-size:13.5px;margin:14px 0 36px}
+.meta>span+span::before{content:"·";margin-right:10px;color:var(--faint)}
+p{margin:0 0 16px}
+.para{position:relative}
+.ref{font-size:10px;color:var(--muted);margin-left:1px}
+.note{float:right;clear:right;width:var(--rail);margin-right:calc(-1 * (var(--rail) + var(--gap)));font-size:12.5px;line-height:1.6;color:var(--muted);position:relative;top:.3em}
+.note b{position:absolute;left:-14px;font-weight:400;font-size:10px}
+.figure{margin:56px 0 40px;position:relative}
+.figure .iso-stage{outline:none;cursor:ns-resize;touch-action:pan-x}
+.figure svg{display:block;width:100%;height:auto}
+.figure .side{position:absolute;top:44%;left:calc(100% + var(--gap));width:var(--rail);font-size:12.5px;color:var(--muted);line-height:1.9}
+.figure .side kbd{font-size:11px;padding:1px 5px}
+.figure .readout{color:var(--ink);font:12.5px/1.6 var(--mono);margin-top:10px;font-variant-numeric:tabular-nums;white-space:normal}
+.sec{display:flex;align-items:center;gap:16px;font-size:15px;font-weight:600;margin:88px 0 24px;scroll-margin-top:40px}
+.sec::after{content:"";flex:1;height:1px;background:var(--rule);order:1}
+.sec i{order:2;font-family:var(--serif);font-weight:400;color:var(--muted);font-size:16px}
+blockquote{margin:28px 0 30px;padding:0}
+blockquote p{font-family:var(--serif);font-size:27px;line-height:1.35;margin:0 0 6px;text-wrap:balance}
+blockquote cite{font-style:normal;font-size:12.5px;color:var(--muted)}
+.keys{border-top:1px solid var(--rule);margin:22px 0 28px}
+.keys div{display:grid;grid-template-columns:100px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.keys dt{margin:0}.keys dd{margin:0;color:var(--text-2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 18px;margin:30px 0 26px;text-align:center}
+.grid figure{margin:0}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;filter:grayscale(1) contrast(.92) brightness(1.06);transition:filter .35s}
+.grid figure:hover img{filter:none}
+.grid figcaption{font-size:13px;line-height:1.45;margin-top:8px}
+.grid figcaption span{display:block;color:var(--muted)}
+.wide{margin:30px 0 10px}
+.wide img{width:100%;border-radius:8px;display:block}
+.wide figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.steps{list-style:none;margin:22px 0 28px;padding:0;border-top:1px solid var(--rule)}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid var(--rule);color:var(--text-2)}
+.steps li::before{content:attr(data-n);color:var(--faint);font-variant-numeric:tabular-nums}
+.steps b{color:var(--ink);font-weight:600}
+.card{background:var(--card);border-radius:12px;box-shadow:0 0 0 1px var(--rule),0 1px 2px rgb(0 0 0/.04);padding:6px 20px;margin:24px 0 26px}
+.card div{display:grid;grid-template-columns:116px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.card div:last-child{border-bottom:0}
+.card dt{color:var(--muted);font-size:13.5px}.card dd{margin:0}
+.card dd small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+pre{background:var(--card);box-shadow:0 0 0 1px var(--rule);border-radius:10px;padding:16px 18px;overflow-x:auto;font:12.5px/1.7 var(--mono);margin:22px 0 26px}
+pre .c{color:var(--muted)}
+ul.plain{margin:0 0 18px;padding-left:1.1em;color:var(--text-2)}
+ul.plain li{margin-bottom:10px}
+ul.plain b{color:var(--ink)}
+footer{margin-top:96px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:minmax(0,var(--column));padding-block:36px 96px}
+  .rail{display:none} main{grid-column:1}
+  .note{float:none;display:block;width:auto;margin:8px 0 0;padding-left:14px;top:0}
+  .note b{left:0}
+  .figure .side{position:static;width:auto;margin-top:12px}
+}
+@media (max-width:520px){
+  .strip{grid-template-columns:repeat(3,1fr)} .strip a:nth-child(n+4){display:none}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .keys div,.card div{grid-template-columns:1fr;gap:4px}
+  blockquote p{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body{font-size:14px;line-height:1.52}
+.wrap{--gap:36px;grid-template-columns:var(--rail) var(--column) var(--rail);padding-block:40px 110px}
+.rail{font-size:13px;line-height:1.55}
+.rail .brand{margin-bottom:26px;font-size:13.5px}
+.rail .sites{margin:0 0 30px}
+.rail .sites ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rail .sites a{color:var(--muted);text-decoration:none;display:block}
+.rail .sites a:hover{color:var(--ink)}
+.rail .sites a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+.rail .toc{display:grid;gap:6px}
+.rail .toc a{display:block}
+.rail .toc li{opacity:.9}
+.rail .toc a.on{color:var(--ink)}
+main{grid-column:2}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:30px}
+.top{display:none}
+.title{font-size:14px;font-weight:600;margin:0}
+.title span{font-weight:400;color:var(--muted)}
+.lede{font-size:16.5px;line-height:1.5;margin:0 0 12px;text-wrap:pretty}
+.meta{margin:10px 0 42px}
+.article{position:relative}
+.article h3{font-size:14px;font-weight:600;margin:34px 0 10px}
+.article p{margin:0 0 15px}
+.article ul,.article ol{margin:0 0 16px;padding-left:20px}
+.article li{margin:0 0 6px}
+.article blockquote{margin:34px 0 36px}
+.article blockquote p{font-size:24px;line-height:1.35}
+.article pre{background:var(--well);padding:14px 16px;border-radius:8px;overflow-x:auto;font:12px/1.7 var(--mono);margin:0 0 18px}
+.article pre code{background:none;padding:0}
+.article code{font-size:12px}
+.article hr{border:0;border-top:1px solid var(--rule);margin:40px 0}
+.sec{font-size:14px;margin:76px 0 18px;scroll-margin-top:24px}
+.sec:first-child{margin-top:0}
+.noted{position:relative}
+.note{position:absolute;left:calc(100% + var(--gap));top:-3px;width:var(--rail);font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+.note b{position:absolute;left:-13px;font-weight:400;font-size:10px;color:var(--faint)}
+
+.table{width:100%;border-collapse:collapse;margin:24px 0 30px;font-size:12.5px;line-height:1.5}
+.table th,.table td{padding:8px 14px 8px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+.table thead th{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule)}
+.table tbody th{font-weight:500;color:var(--text-2);white-space:nowrap;padding-right:26px}
+.table .num{font:11.5px/1.5 var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.table tbody tr:last-child th,.table tbody tr:last-child td{border-bottom:0}
+.ref a{color:var(--muted);text-decoration:none;font:9.5px var(--mono);padding-left:1px}
+.ref a:hover{color:var(--ink)}
+.note:target{color:var(--ink)}
+
+.fig{margin:40px 0 34px;position:relative}
+.fig svg,.fig canvas{display:block;width:100%;height:auto}
+.fig .side{position:absolute;top:36%;left:calc(100% + var(--gap));width:var(--rail);font-size:11.5px;line-height:1.7;color:var(--muted)}
+.fig .side kbd{font-size:10.5px;padding:1px 4px}
+.fig .readout{color:var(--ink);font:11.5px/1.7 var(--mono);margin-top:8px;font-variant-numeric:tabular-nums}
+.fig-cap{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px}
+.fig-cap b{font-weight:500;color:var(--text-2)}
+.pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--rule);margin-top:90px;padding-top:18px;font-size:13px}
+.pager a{text-decoration:none;color:var(--text-2)}
+.pager a:hover{color:var(--ink)}
+.pager span{color:var(--muted);font-size:12px}
+@media (max-width:1100px){
+  .wrap{display:block;padding:24px 16px 90px}
+  .rail{display:none}
+  .top{display:block;margin-bottom:18px}
+  .top ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;font-size:13px}
+  .top a{color:var(--muted);text-decoration:none}
+  .top a[aria-current="page"]{color:var(--ink)}
+  .noted{position:static}
+  .note{position:static;width:auto;margin:8px 0 16px;padding-left:14px;border-left:1px solid var(--rule)}
+  .note b{position:static;margin-right:6px}
+  .fig .side{position:static;width:auto;margin-top:10px}
+  .fig-cap{margin-top:8px}
+}
+@media (max-width:560px){
+  .table{font-size:12px;table-layout:fixed;width:100%}
+  .table th,.table td{padding:7px 6px;overflow-wrap:anywhere}
+  .lede{font-size:16px}
+  .article blockquote p{font-size:21px}
+}
+.strip{margin:26px 0 40px}</style></head><body><div class="wrap">
+<aside class="rail"><a class="brand" href="index.html"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M9 2v22M17 2v22M6 6h14M6 13h14M6 20h14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="9.5" r="1.6" fill="var(--accent)"/></svg>rail_measure</a><nav class="sites" aria-label="Site"><ul><li><a href="index.html" aria-current="page">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><ol class="toc" aria-label="On this page"><li><a href="#what-it-is">What it is</a></li><li><a href="#three-measurements">Three measurements</a></li><li><a href="#two-nodes">Two nodes</a></li><li><a href="#one-session">One session</a></li><li><a href="#what-it-is-not">What it is not</a></li></ol></aside>
+<main>
+<header class="masthead"><nav class="top" aria-label="Site"><ul><li><a href="index.html" aria-current="page">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><h1 class="title">rail_measure <span>· offline rail inspection</span></h1></header>
+<p class="lede">An offline elevator guide rail inspection system combining laser verticality, spatial depth, and defect classification across two edge nodes.</p>
+<div class="meta"><span>v1.0.8</span><span>Dual edge nodes</span><span>Standalone site LAN</span></div>
+<article class="article"><div class="strip"><a href="verticality.html" tabindex="-1"><img src="img/photos/camera.jpg" alt=""></a><a href="verticality.html" tabindex="-1"><img src="img/photos/pi.jpg" alt=""></a><a href="verticality.html" tabindex="-1"><img src="img/photos/jaw.jpg" alt=""></a><a href="verticality.html" tabindex="-1"><img src="img/photos/tracks.jpg" alt=""></a><a href="verticality.html" tabindex="-1"><img src="img/photos/target.jpg" alt=""></a></div><p>Elevator guide rail verification traditionally depends on a mechanical plumb wire, a handheld tape, and a flashlight. An inspection crew stops the car to evaluate rail verticality, check car-top overhead clearances, and search for surface wear or damaged wire ropes. Each assessment requires an isolated manual judgment under harsh lighting, where air drafts deflect the wire and handwritten inspection logs leave no verifiable sensor trail.</p>
+<h2 class="sec" id="what-it-is"><span>What it is</span><i>01</i></h2>
+<p>The rail_measure system is an offline field screening instrument for guide rail inspection. Mounted on two motorized carts that travel the shaft, the equipment captures geometric deviations and structural condition without physical contact through optical tracking, active stereo depth, and onboard neural inference.</p>
+<div class="noted"><aside class="note" id="note-1"><b>1</b>all computations and evidence records remain within local edge nodes without outbound network telemetry</aside><p>Processing executes locally across two edge nodes on an isolated site LAN, with no internet access or cloud infrastructure. Measurements accumulate in one active session; the node writes evidence files as they are produced, the session itself is saved to node 2 when the operator saves it, and an onboard rule engine turns it into a Markdown screening report.<sup class="ref"><a href="#note-1" id="ref-1">1</a></sup></p></div>
+<h2 class="sec" id="three-measurements"><span>Three measurements</span><i>02</i></h2>
+<p>The inspection workflow groups physical hoistway evaluation into three specialized measurement pipelines.</p>
+<table class="table"><thead><tr><th scope="col">Measurement</th><th scope="col">Hardware</th><th scope="col">Primary output</th></tr></thead><tbody><tr><th scope="row">Verticality</th><td>Node 1 (Raspberry Pi, OAK-D Pro W color camera, USB rangefinder)</td><td>Height-indexed dX/dY displacement and ±3 mm tolerance check</td></tr><tr><th scope="row">Spatial dimensions</th><td>Node 2 (Lubancat RK3588, OAK-D Pro W stereo depth, IMU)</td><td>Fused 3D point distances, car-top clearance grid, shaft profile</td></tr><tr><th scope="row">Defect recognition</th><td>Node 2 (Fine-tuned DINOv2 ViT-S/14, RKNN/ONNX/OpenCV)</td><td>Anomaly probability, 8-class defect label, undetermined flag</td></tr></tbody></table>
+<h2 class="sec" id="two-nodes"><span>Two nodes</span><i>03</i></h2>
+<p>Physical sensing is divided across two edge nodes on the site LAN. Node 1 rides on Cart A to track the plumb line and vertical travel height. Node 2 rides on Cart B, serving the web UI on port 8080 and executing spatial depth calculations alongside visual defect classification while polling Node 1 for health.</p>
+<table class="table"><thead><tr><th scope="col">Node</th><th scope="col">Hardware platform</th><th scope="col">Network ports</th><th scope="col">Functional role</th></tr></thead><tbody><tr><th scope="row">Node 1</th><td>Raspberry Pi 4B/5, OAK-D Pro W (IMX378), USB rangefinder</td><td>WebSocket 8765, HTTP 8081</td><td>Plumb laser spot tracking and vertical travel height</td></tr><tr><th scope="row">Node 2</th><td>Lubancat RK3588 (or 8 GB Pi), OAK-D Pro W (stereo, IR, IMU)</td><td>HTTP 8080 (Web UI, REST API)</td><td>Stereo depth, defect inference, session storage</td></tr></tbody></table>
+<p>Node 1 exposes a WebSocket on port 8765 for spot telemetry and a status endpoint on port 8081. Node 2 polls Node 1 for health and frame status.</p>
+<h2 class="sec" id="one-session"><span>One session</span><i>04</i></h2>
+<p>Every measurement belongs to one session. The active session lives in the browser; confirming a clearance writes evidence files to node 2 immediately, while the session record is persisted on node 2 only when the operator saves it. Save before switching devices.</p>
+<div class="noted"><aside class="note" id="note-2"><b>2</b>the onboard rule engine generates the complete inspection summary without calling any external or hosted services</aside><p>At the conclusion of a hoistway run, the onboard rule engine evaluates all logged readings against screening thresholds and compiles a comprehensive Markdown report. The edge stack is Python 3.9–3.12 with DepthAI 2.29; the browser UI, the Electron desktop client, and the Android WebView client are separate operator terminals on the same LAN. The report is generated on node 2 without cloud calls.<sup class="ref"><a href="#note-2" id="ref-2">2</a></sup></p></div>
+<h2 class="sec" id="what-it-is-not"><span>What it is not</span><i>05</i></h2>
+<p>The rail_measure system is engineered strictly as an objective field screening tool rather than an automatic acceptance authority. It does not replace the national-standard tolerance decision for a specific guide rail model and measurement method, which remains the sole legal responsibility of a certified human inspector.</p>
+<p>The onboard screening report flags out-of-tolerance displacements, occluded clearance zones, and suspicious surface patterns to guide inspector scrutiny. All flagged anomalies require direct visual confirmation, and no automated alarm constitutes a formal declaration of hoistway compliance.</p>
+<blockquote><p>A field screening tool organizes physical hoistway geometry into verifiable sensor records so that inspectors can make decisions based on repeatable data rather than manual guesswork.</p></blockquote></article>
+<div class="pager"><span></span><a href="verticality.html">Verticality →</a></div>
+</main></div>
+<script>
+const dark = matchMedia("(prefers-color-scheme: dark)");
+for (const box of document.querySelectorAll(".fig.iso")) {
+  const sync = () => { const t = document.documentElement.dataset.theme; box.dataset.theme = t ? t : dark.matches ? "dark" : "light"; };
+  sync(); dark.addEventListener("change", sync);
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+const links = [...document.querySelectorAll(".toc a")];
+const marks = [...document.querySelectorAll("h2.sec[id]")];
+const syncRail = () => {
+  if (!marks.length) return;
+  const y = scrollY + 120;
+  let cur = marks[0];
+  for (const s of marks) if (s.getBoundingClientRect().top + scrollY <= y) cur = s;
+  if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4) cur = marks[marks.length - 1];
+  for (const a of links) a.classList.toggle("on", a.getAttribute("href") === "#" + cur.id);
+};
+addEventListener("scroll", syncRail, { passive: true });
+syncRail();
+</script></body></html>

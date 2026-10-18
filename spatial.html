@@ -1,0 +1,290 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Spatial measurement · rail_measure</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"><style>
+/* 版式：左目录 168 · 正文 550 · 右旁注 168，三栏居中；窄屏只留正文，旁注随段落内联 */
+:root{
+  --ground:#fafafa; --ink:#171717; --text-2:#525252; --muted:#8f8f8f; --faint:#bdbdbd;
+  --rule:#ebebeb; --well:#f1f1f1; --card:#ffffff; --accent:#2f8a57;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --serif:"EB Garamond","Noto Serif SC","Songti SC",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --column:550px; --rail:168px; --gap:48px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+em{font-family:var(--serif);font-style:italic;font-size:1.06em}
+code,kbd{font:12.5px/1 var(--mono);background:var(--well);padding:2px 5px;border-radius:4px;color:var(--ink)}
+.wrap{display:grid;grid-template-columns:var(--rail) var(--column) var(--rail);column-gap:var(--gap);justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:56px 120px}
+.rail{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));align-self:start;font-size:13.5px;line-height:1.95}
+.rail .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:500;margin-bottom:28px}
+.rail .brand svg{width:26px;height:26px;flex:none}
+.rail ol{list-style:none;margin:0;padding:0}
+.rail a{color:var(--muted);text-decoration:none}
+.rail a:hover,.rail a.on{color:var(--ink)}
+main{min-width:0;grid-column:2}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.top h1{font-size:15px;font-weight:600;margin:0}
+.top h1 span{font-weight:400;color:var(--muted)}
+.lede{font-size:16px;margin:18px 0 0}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;border-block:1px solid var(--rule);padding-block:16px;margin-top:22px}
+.strip img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;filter:grayscale(1) contrast(.9) brightness(1.08);opacity:.85;transition:filter .3s,opacity .3s}
+.strip a:hover img{filter:none;opacity:1}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;color:var(--muted);font-size:13.5px;margin:14px 0 36px}
+.meta>span+span::before{content:"·";margin-right:10px;color:var(--faint)}
+p{margin:0 0 16px}
+.para{position:relative}
+.ref{font-size:10px;color:var(--muted);margin-left:1px}
+.note{float:right;clear:right;width:var(--rail);margin-right:calc(-1 * (var(--rail) + var(--gap)));font-size:12.5px;line-height:1.6;color:var(--muted);position:relative;top:.3em}
+.note b{position:absolute;left:-14px;font-weight:400;font-size:10px}
+.figure{margin:56px 0 40px;position:relative}
+.figure .iso-stage{outline:none;cursor:ns-resize;touch-action:pan-x}
+.figure svg{display:block;width:100%;height:auto}
+.figure .side{position:absolute;top:44%;left:calc(100% + var(--gap));width:var(--rail);font-size:12.5px;color:var(--muted);line-height:1.9}
+.figure .side kbd{font-size:11px;padding:1px 5px}
+.figure .readout{color:var(--ink);font:12.5px/1.6 var(--mono);margin-top:10px;font-variant-numeric:tabular-nums;white-space:normal}
+.sec{display:flex;align-items:center;gap:16px;font-size:15px;font-weight:600;margin:88px 0 24px;scroll-margin-top:40px}
+.sec::after{content:"";flex:1;height:1px;background:var(--rule);order:1}
+.sec i{order:2;font-family:var(--serif);font-weight:400;color:var(--muted);font-size:16px}
+blockquote{margin:28px 0 30px;padding:0}
+blockquote p{font-family:var(--serif);font-size:27px;line-height:1.35;margin:0 0 6px;text-wrap:balance}
+blockquote cite{font-style:normal;font-size:12.5px;color:var(--muted)}
+.keys{border-top:1px solid var(--rule);margin:22px 0 28px}
+.keys div{display:grid;grid-template-columns:100px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.keys dt{margin:0}.keys dd{margin:0;color:var(--text-2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 18px;margin:30px 0 26px;text-align:center}
+.grid figure{margin:0}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;filter:grayscale(1) contrast(.92) brightness(1.06);transition:filter .35s}
+.grid figure:hover img{filter:none}
+.grid figcaption{font-size:13px;line-height:1.45;margin-top:8px}
+.grid figcaption span{display:block;color:var(--muted)}
+.wide{margin:30px 0 10px}
+.wide img{width:100%;border-radius:8px;display:block}
+.wide figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.steps{list-style:none;margin:22px 0 28px;padding:0;border-top:1px solid var(--rule)}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid var(--rule);color:var(--text-2)}
+.steps li::before{content:attr(data-n);color:var(--faint);font-variant-numeric:tabular-nums}
+.steps b{color:var(--ink);font-weight:600}
+.card{background:var(--card);border-radius:12px;box-shadow:0 0 0 1px var(--rule),0 1px 2px rgb(0 0 0/.04);padding:6px 20px;margin:24px 0 26px}
+.card div{display:grid;grid-template-columns:116px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.card div:last-child{border-bottom:0}
+.card dt{color:var(--muted);font-size:13.5px}.card dd{margin:0}
+.card dd small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+pre{background:var(--card);box-shadow:0 0 0 1px var(--rule);border-radius:10px;padding:16px 18px;overflow-x:auto;font:12.5px/1.7 var(--mono);margin:22px 0 26px}
+pre .c{color:var(--muted)}
+ul.plain{margin:0 0 18px;padding-left:1.1em;color:var(--text-2)}
+ul.plain li{margin-bottom:10px}
+ul.plain b{color:var(--ink)}
+footer{margin-top:96px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:minmax(0,var(--column));padding-block:36px 96px}
+  .rail{display:none} main{grid-column:1}
+  .note{float:none;display:block;width:auto;margin:8px 0 0;padding-left:14px;top:0}
+  .note b{left:0}
+  .figure .side{position:static;width:auto;margin-top:12px}
+}
+@media (max-width:520px){
+  .strip{grid-template-columns:repeat(3,1fr)} .strip a:nth-child(n+4){display:none}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .keys div,.card div{grid-template-columns:1fr;gap:4px}
+  blockquote p{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body{font-size:14px;line-height:1.52}
+.wrap{--gap:36px;grid-template-columns:var(--rail) var(--column) var(--rail);padding-block:40px 110px}
+.rail{font-size:13px;line-height:1.55}
+.rail .brand{margin-bottom:26px;font-size:13.5px}
+.rail .sites{margin:0 0 30px}
+.rail .sites ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rail .sites a{color:var(--muted);text-decoration:none;display:block}
+.rail .sites a:hover{color:var(--ink)}
+.rail .sites a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+.rail .toc{display:grid;gap:6px}
+.rail .toc a{display:block}
+.rail .toc li{opacity:.9}
+.rail .toc a.on{color:var(--ink)}
+main{grid-column:2}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:30px}
+.top{display:none}
+.title{font-size:14px;font-weight:600;margin:0}
+.title span{font-weight:400;color:var(--muted)}
+.lede{font-size:16.5px;line-height:1.5;margin:0 0 12px;text-wrap:pretty}
+.meta{margin:10px 0 42px}
+.article{position:relative}
+.article h3{font-size:14px;font-weight:600;margin:34px 0 10px}
+.article p{margin:0 0 15px}
+.article ul,.article ol{margin:0 0 16px;padding-left:20px}
+.article li{margin:0 0 6px}
+.article blockquote{margin:34px 0 36px}
+.article blockquote p{font-size:24px;line-height:1.35}
+.article pre{background:var(--well);padding:14px 16px;border-radius:8px;overflow-x:auto;font:12px/1.7 var(--mono);margin:0 0 18px}
+.article pre code{background:none;padding:0}
+.article code{font-size:12px}
+.article hr{border:0;border-top:1px solid var(--rule);margin:40px 0}
+.sec{font-size:14px;margin:76px 0 18px;scroll-margin-top:24px}
+.sec:first-child{margin-top:0}
+.noted{position:relative}
+.note{position:absolute;left:calc(100% + var(--gap));top:-3px;width:var(--rail);font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+.note b{position:absolute;left:-13px;font-weight:400;font-size:10px;color:var(--faint)}
+
+.table{width:100%;border-collapse:collapse;margin:24px 0 30px;font-size:12.5px;line-height:1.5}
+.table th,.table td{padding:8px 14px 8px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+.table thead th{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule)}
+.table tbody th{font-weight:500;color:var(--text-2);white-space:nowrap;padding-right:26px}
+.table .num{font:11.5px/1.5 var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.table tbody tr:last-child th,.table tbody tr:last-child td{border-bottom:0}
+.ref a{color:var(--muted);text-decoration:none;font:9.5px var(--mono);padding-left:1px}
+.ref a:hover{color:var(--ink)}
+.note:target{color:var(--ink)}
+
+.fig{margin:40px 0 34px;position:relative}
+.fig svg,.fig canvas{display:block;width:100%;height:auto}
+.fig .side{position:absolute;top:36%;left:calc(100% + var(--gap));width:var(--rail);font-size:11.5px;line-height:1.7;color:var(--muted)}
+.fig .side kbd{font-size:10.5px;padding:1px 4px}
+.fig .readout{color:var(--ink);font:11.5px/1.7 var(--mono);margin-top:8px;font-variant-numeric:tabular-nums}
+.fig-cap{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px}
+.fig-cap b{font-weight:500;color:var(--text-2)}
+.pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--rule);margin-top:90px;padding-top:18px;font-size:13px}
+.pager a{text-decoration:none;color:var(--text-2)}
+.pager a:hover{color:var(--ink)}
+.pager span{color:var(--muted);font-size:12px}
+@media (max-width:1100px){
+  .wrap{display:block;padding:24px 16px 90px}
+  .rail{display:none}
+  .top{display:block;margin-bottom:18px}
+  .top ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;font-size:13px}
+  .top a{color:var(--muted);text-decoration:none}
+  .top a[aria-current="page"]{color:var(--ink)}
+  .noted{position:static}
+  .note{position:static;width:auto;margin:8px 0 16px;padding-left:14px;border-left:1px solid var(--rule)}
+  .note b{position:static;margin-right:6px}
+  .fig .side{position:static;width:auto;margin-top:10px}
+  .fig-cap{margin-top:8px}
+}
+@media (max-width:560px){
+  .table{font-size:12px;table-layout:fixed;width:100%}
+  .table th,.table td{padding:7px 6px;overflow-wrap:anywhere}
+  .lede{font-size:16px}
+  .article blockquote p{font-size:21px}
+}
+
+.sp{display:block;width:100%;height:auto;touch-action:none}
+.sp .handle{fill:var(--ground);stroke:var(--ink);stroke-width:2;cursor:grab}
+.sp .handle:active{cursor:grabbing}
+.sp .handle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sp .gridline{stroke:var(--rule);stroke-width:1}
+.sp .dim{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+.sp .bar{fill:var(--well-2);stroke:var(--rule);cursor:ns-resize}
+.sp .bar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sp .label{font:12px var(--mono);fill:var(--text-2);font-variant-numeric:tabular-nums}
+.sp .tag{font:12px var(--sans);fill:var(--muted)}
+
+
+.sp{display:block;width:100%;height:auto;touch-action:none}
+.sp .handle{fill:var(--ground);stroke:var(--ink);stroke-width:2;cursor:grab}
+.sp .handle:active{cursor:grabbing}
+.sp .handle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sp .gridline{stroke:var(--rule);stroke-width:1}
+.sp .dim{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+.sp .bar{fill:var(--well-2);stroke:var(--rule);cursor:ns-resize}
+.sp .bar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sp .label{font:12px var(--mono);fill:var(--text-2);font-variant-numeric:tabular-nums}
+.sp .tag{font:12px var(--sans);fill:var(--muted)}
+</style></head><body><div class="wrap">
+<aside class="rail"><a class="brand" href="index.html"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M9 2v22M17 2v22M6 6h14M6 13h14M6 20h14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="9.5" r="1.6" fill="var(--accent)"/></svg>rail_measure</a><nav class="sites" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html" aria-current="page">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><ol class="toc" aria-label="On this page"><li><a href="#depth">Depth</a></li><li><a href="#two-points">Two points</a></li><li><a href="#clearance">Clearance</a></li><li><a href="#evidence">Evidence</a></li><li><a href="#shaft-station">Shaft station</a></li><li><a href="#limits">Limits</a></li></ol></aside>
+<main>
+<header class="masthead"><nav class="top" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html" aria-current="page">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><h1 class="title">rail_measure <span>· Spatial measurement</span></h1></header>
+<p class="lede">Stereo depth sensing and inertial gravity vectors quantify hoistway clearances, component separations, and shaft cross-sections without contact.</p>
+<div class="meta"><span>v1.0.8</span><span>200–12000 mm range</span><span>RANSAC reference plane</span><span>Four evidence files</span></div>
+<article class="article"><h2 class="sec" id="depth"><span>Depth</span><i>01</i></h2>
+<p>Spatial measurement is executed by Node 2 utilizing an OAK-D Pro W stereo camera equipped with an infrared speckle dot projector and an integrated inertial measurement unit (IMU). The active IR pattern projects textured speckles onto featureless hoistway surfaces, enabling stereo disparity matching across dark, untextured concrete walls, metal brackets, and elevator car tops.</p>
+<p>The camera is configured for a 200–12000 mm depth range; that is a working envelope, not a guarantee of accuracy across the whole span. To prevent operators from taking measurements against stale image frames during intermittent network latency or hardware stalls, the system enforces strict timestamp freshness. If camera frame data is older than 2 s, snapshot and calculation endpoints immediately return HTTP 503 Service Unavailable, preventing operators from confirming measurements against outdated scene states.</p>
+<h2 class="sec" id="two-points"><span>Two points</span><i>02</i></h2>
+<p>To measure mechanical clearances between isolated elevator components—such as rail bracket gaps, sill separations, or cable clearances—the operator stops Cart B at the inspection height and selects two points (P1 and P2) on textured surfaces in the live video stream.</p>
+<p>The system retrieves fused stereo depth at both pixel coordinates and projects them into 3D camera coordinates to compute the Euclidean distance. When the onboard IMU is active, the system extracts the true gravity vector, resolving the 3D vector into a gravity-aligned vertical height difference (where P2 higher than P1 is reported as positive) and a horizontal projection.</p>
+<p>For precise sub-centimeter alignment, the operator can drag the points directly on the touchscreen or adjust them via endpoint nudge controls. Tapping the nudge buttons shifts an endpoint by 1 px, while holding Shift shifts it by 5 px. A magnified inspection loupe renders in the corner of the preview to ensure points do not slip off narrow bracket edges.</p>
+<figure class="fig">
+  <figure class="sample-fig">
+    <svg class="sp" id="sp-two" viewBox="0 0 640 250" role="img" aria-label="Two-point distance: drag P1 or P2">
+      <defs>
+        <pattern id="sp-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+          <path d="M32 0H0V32" class="gridline" fill="none"/>
+        </pattern>
+      </defs>
+      <rect x="40" y="24" width="560" height="190" fill="url(#sp-grid)" stroke="var(--rule)"/>
+      <line id="sp-line" class="dim" x1="180" y1="120" x2="430" y2="170"/>
+      <circle id="p1" class="handle" cx="180" cy="120" r="7" tabindex="0" role="button"
+              aria-label="Endpoint P1, arrow keys to move, Shift to accelerate"/>
+      <circle id="p2" class="handle" cx="430" cy="170" r="7" tabindex="0" role="button"
+              aria-label="Endpoint P2, arrow keys to move, Shift to accelerate"/>
+      <text class="tag" x="180" y="106">P1</text>
+      <text class="tag" x="438" y="166">P2</text>
+      <text class="label" id="sp-dist" x="40" y="240" aria-live="polite">D = 0 mm</text>
+    </svg>
+    <figcaption>Two-point distance. Drag a handle, or focus it and use the arrow keys (1 unit, Shift 10 units).</figcaption>
+  </figure>
+<p class="fig-cap"><b>Two-point distance</b> · drag an endpoint or focus it and use the arrow keys; 1 unit = 3.2 mm, illustrative</p></figure>
+<table class="table"><thead><tr><th scope="col">Coordinate mode</th><th scope="col">Geometric basis</th><th scope="col">Coordinate reference</th><th scope="col">Operator adjustment</th></tr></thead><tbody><tr><th scope="row">3D distance</th><td>Fused stereo depth at P1 and P2</td><td>Camera optical frame</td><td>Direct drag or 1 px / 5 px nudge</td></tr><tr><th scope="row">Vertical difference</th><td>Projection along IMU gravity vector</td><td>True vertical (gravity aligned)</td><td>Dependent on stable IMU orientation</td></tr><tr><th scope="row">Horizontal projection</th><td>Vector component orthogonal to gravity</td><td>Horizontal plane</td><td>Insensitive to camera mounting tilt</td></tr></tbody></table>
+<h2 class="sec" id="clearance"><span>Clearance</span><i>03</i></h2>
+<p>Verifying overhead clearance above the elevator car top is a safety-critical procedure required to ensure maintenance personnel are protected from crushing hazards beneath overhead beams and shaft ceilings.</p>
+<p>The operator initiates the clearance procedure by dragging a bounding box over the flat, unobstructed standing surface of the car top to define the reference plane. The system executes RANSAC plane fitting over hundreds of sampled depth points inside the box rather than relying on an arbitrary center pixel. The reference plane is rejected if fitting residuals are excessive, inlier ratios fall below threshold, or plane tilt exceeds <code>max_reference_tilt_deg</code>.</p>
+<p>Next, the operator drags a second bounding box over the overhead structure, encompassing the shaft ceiling, horizontal beams, car-top equipment, or guard rails. The system divides this upper region into a regular inspection grid (<code>grid_rows × grid_cols</code>). For each grid cell, depth points are projected along the gravity vector onto the reference plane, and the system computes a low percentile of vertical distances (<code>cell_percentile</code>) to isolate the lowest protruding obstacle.</p>
+<div class="noted"><aside class="note" id="note-1"><b>1</b>grid cells lacking depth returns are classified as unknown obstacles rather than open clearance to prevent false negative safety clearances</aside><p>A fundamental safety rule governs grid processing: unknown cells—areas lacking valid depth due to specular reflections, glass, thin wire ropes, or occlusion—are explicitly marked as unknown and are never treated as empty space.<sup class="ref"><a href="#note-1" id="ref-1">1</a></sup></p></div>
+<figure class="fig">
+  <figure class="sample-fig">
+    <svg class="sp" id="sp-clear" viewBox="0 0 640 210" role="img" aria-label="Car-top clearance: drag the obstruction up or down">
+      <line class="gridline" x1="40" y1="168" x2="600" y2="168"/>
+      <text class="tag" x="40" y="192">Car-top standing surface (reference plane)</text>
+      <rect id="obs" class="bar" x="40" y="56" width="560" height="10" tabindex="0" role="slider"
+            aria-orientation="vertical" aria-label="Obstruction height, adjust with the arrow keys; the distance is measured from its lower face to the reference plane"
+            aria-valuemin="0" aria-valuemax="429" aria-valuenow="326" aria-valuetext="Clearance 326 millimetres"/>
+      <text class="tag" x="40" y="44">Upper region (shaft top / beams / obstructions)</text>
+      <line id="clr-line" class="dim" x1="320" y1="66" x2="320" y2="168"/>
+      <text class="label" id="clr-dist" x="332" y="120" aria-live="polite">H = 0 mm</text>
+    </svg>
+    <figcaption>Car-top clearance. The obstruction is its lower face; unmeasured cells are treated as unknown.</figcaption>
+  </figure>
+<p class="fig-cap"><b>Car-top clearance</b> · the obstruction is measured from its lower face; unknown cells are not free space</p></figure>
+<h2 class="sec" id="evidence"><span>Evidence</span><i>04</i></h2>
+<p>When the operator confirms a clearance measurement, Node 2 freezes the calculation window and compiles four evidence files into the local archive (retained subject to the configured retention period):</p>
+<ol><li>Top view (<code>car_top_*_plan.png</code>): an orthographic projection looking downward along the gravity vector. The car-top standing surface is rendered in blue, overhead obstacles are color-coded from red (minimum clearance) to green (maximum clearance), and a prominent crosshair marks the critical lowest point.</li><li>Clearance profile (<code>*_section.png</code>): a cross-sectional elevation plot showing the lowest overhead profile across the width of the car top, with unobserved or occluded regions marked by diagonal hatching.</li><li>Colored point cloud (<code>.ply</code>): a full 3D point cloud capturing the spatial relationship between the reference plane and upper structures, suitable for external CAD or mesh review.</li><li>Quality JSON record: a detailed metadata file recording per-frame window depth measurements, RANSAC plane parameters, IMU gravity vectors, and sensor quality flags.</li></ol>
+<table class="table"><thead><tr><th scope="col">Evidence file</th><th scope="col">File format</th><th scope="col">Primary visual and numerical content</th></tr></thead><tbody><tr><th scope="row">Top view</th><td>PNG image</td><td>Plan view with blue reference plane and red-to-green obstruction contours</td></tr><tr><th scope="row">Clearance profile</th><td>PNG image</td><td>Elevation cross-section showing lowest structure with hatched unknown zones</td></tr><tr><th scope="row">Point cloud</th><td>PLY file</td><td>Fused 3D geometric mesh preserving true physical distances</td></tr><tr><th scope="row">Quality log</th><td>JSON file</td><td>Per-frame depth statistics, RANSAC fit residuals, and IMU gravity vectors</td></tr></tbody></table>
+<p>These artifacts provide verifiable documentation that can be audited long after the physical inspection cart has been removed from the hoistway.</p>
+<h2 class="sec" id="shaft-station"><span>Shaft station</span><i>05</i></h2>
+<p>To assess entire shaft dimensions, Node 2 operates in coordination with a dual-axis pan-tilt gimbal mounted on Cart B. The operator positions Cart B at a designated station height and commands the gimbal to sweep through a complete 360° horizontal revolution.</p>
+<p>The capture routine spans 20 s by default. During the initial 1.0 s, the gimbal remains completely stationary to allow the system to estimate gyroscope zero-bias drift. As the camera pans, an onboard motion filter monitors rotational velocity; any frames where angular velocity exceeds <code>max_gyro_dps</code> are dropped to prevent motion blur from distorting depth.</p>
+<p>From the accumulated point cloud slice, the system fits vertical wall planes to resolve clear shaft width, clear shaft depth, two diagonal spans, four interior corner angles, and wall tilt relative to the gimbal pivot. Multiple station sweeps at varying heights are aggregated to build a full-height clearance envelope.</p>
+<h2 class="sec" id="limits"><span>Limits</span><i>06</i></h2>
+<p>A clear distinction must be maintained between hoistway envelope dimensions and usable car-top safety space: a shaft cross-section is not the usable car-top area, and total top-floor height is not car-top clearance.</p>
+<p>Stereo depth resolution degrades quadratically with increasing distance, meaning measurements taken at 8 m possess significantly greater uncertainty than measurements taken at 1 m. Furthermore, car-top clearance evaluations represent static geometry at the current stationary cart position; they do not simulate dynamic buffer compression or counterweight overtravel conditions.</p>
+<div class="noted"><aside class="note" id="note-2"><b>2</b>stereo depth uncertainty scales quadratically with distance requiring critical long-range dimensions to be verified with physical tape measures</aside><p>Finally, spatial measurements serve as a screening tool to highlight potential spatial non-conformances. Certified elevator sign-off requires independent verification using calibrated steel tape or laser distance meters.<sup class="ref"><a href="#note-2" id="ref-2">2</a></sup></p></div>
+<blockquote><p>A static clearance measurement records geometry at rest and does not model dynamic counterweight overtravel or car buffer compression.</p></blockquote></article>
+<div class="pager"><a href="verticality.html">← Verticality</a><a href="defect.html">Defect recognition →</a></div>
+</main></div>
+<script>
+const dark = matchMedia("(prefers-color-scheme: dark)");
+for (const box of document.querySelectorAll(".fig.iso")) {
+  const sync = () => { const t = document.documentElement.dataset.theme; box.dataset.theme = t ? t : dark.matches ? "dark" : "light"; };
+  sync(); dark.addEventListener("change", sync);
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+const links = [...document.querySelectorAll(".toc a")];
+const marks = [...document.querySelectorAll("h2.sec[id]")];
+const syncRail = () => {
+  if (!marks.length) return;
+  const y = scrollY + 120;
+  let cur = marks[0];
+  for (const s of marks) if (s.getBoundingClientRect().top + scrollY <= y) cur = s;
+  if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4) cur = marks[marks.length - 1];
+  for (const a of links) a.classList.toggle("on", a.getAttribute("href") === "#" + cur.id);
+};
+addEventListener("scroll", syncRail, { passive: true });
+syncRail();
+</script><script src="spatial.js" defer></script></body></html>

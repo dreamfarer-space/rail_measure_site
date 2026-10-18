@@ -1,0 +1,243 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Defect recognition · rail_measure</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"><style>
+/* 版式：左目录 168 · 正文 550 · 右旁注 168，三栏居中；窄屏只留正文，旁注随段落内联 */
+:root{
+  --ground:#fafafa; --ink:#171717; --text-2:#525252; --muted:#8f8f8f; --faint:#bdbdbd;
+  --rule:#ebebeb; --well:#f1f1f1; --card:#ffffff; --accent:#2f8a57;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --serif:"EB Garamond","Noto Serif SC","Songti SC",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --column:550px; --rail:168px; --gap:48px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+em{font-family:var(--serif);font-style:italic;font-size:1.06em}
+code,kbd{font:12.5px/1 var(--mono);background:var(--well);padding:2px 5px;border-radius:4px;color:var(--ink)}
+.wrap{display:grid;grid-template-columns:var(--rail) var(--column) var(--rail);column-gap:var(--gap);justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:56px 120px}
+.rail{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));align-self:start;font-size:13.5px;line-height:1.95}
+.rail .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:500;margin-bottom:28px}
+.rail .brand svg{width:26px;height:26px;flex:none}
+.rail ol{list-style:none;margin:0;padding:0}
+.rail a{color:var(--muted);text-decoration:none}
+.rail a:hover,.rail a.on{color:var(--ink)}
+main{min-width:0;grid-column:2}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.top h1{font-size:15px;font-weight:600;margin:0}
+.top h1 span{font-weight:400;color:var(--muted)}
+.lede{font-size:16px;margin:18px 0 0}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;border-block:1px solid var(--rule);padding-block:16px;margin-top:22px}
+.strip img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;filter:grayscale(1) contrast(.9) brightness(1.08);opacity:.85;transition:filter .3s,opacity .3s}
+.strip a:hover img{filter:none;opacity:1}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;color:var(--muted);font-size:13.5px;margin:14px 0 36px}
+.meta>span+span::before{content:"·";margin-right:10px;color:var(--faint)}
+p{margin:0 0 16px}
+.para{position:relative}
+.ref{font-size:10px;color:var(--muted);margin-left:1px}
+.note{float:right;clear:right;width:var(--rail);margin-right:calc(-1 * (var(--rail) + var(--gap)));font-size:12.5px;line-height:1.6;color:var(--muted);position:relative;top:.3em}
+.note b{position:absolute;left:-14px;font-weight:400;font-size:10px}
+.figure{margin:56px 0 40px;position:relative}
+.figure .iso-stage{outline:none;cursor:ns-resize;touch-action:pan-x}
+.figure svg{display:block;width:100%;height:auto}
+.figure .side{position:absolute;top:44%;left:calc(100% + var(--gap));width:var(--rail);font-size:12.5px;color:var(--muted);line-height:1.9}
+.figure .side kbd{font-size:11px;padding:1px 5px}
+.figure .readout{color:var(--ink);font:12.5px/1.6 var(--mono);margin-top:10px;font-variant-numeric:tabular-nums;white-space:normal}
+.sec{display:flex;align-items:center;gap:16px;font-size:15px;font-weight:600;margin:88px 0 24px;scroll-margin-top:40px}
+.sec::after{content:"";flex:1;height:1px;background:var(--rule);order:1}
+.sec i{order:2;font-family:var(--serif);font-weight:400;color:var(--muted);font-size:16px}
+blockquote{margin:28px 0 30px;padding:0}
+blockquote p{font-family:var(--serif);font-size:27px;line-height:1.35;margin:0 0 6px;text-wrap:balance}
+blockquote cite{font-style:normal;font-size:12.5px;color:var(--muted)}
+.keys{border-top:1px solid var(--rule);margin:22px 0 28px}
+.keys div{display:grid;grid-template-columns:100px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.keys dt{margin:0}.keys dd{margin:0;color:var(--text-2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 18px;margin:30px 0 26px;text-align:center}
+.grid figure{margin:0}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;filter:grayscale(1) contrast(.92) brightness(1.06);transition:filter .35s}
+.grid figure:hover img{filter:none}
+.grid figcaption{font-size:13px;line-height:1.45;margin-top:8px}
+.grid figcaption span{display:block;color:var(--muted)}
+.wide{margin:30px 0 10px}
+.wide img{width:100%;border-radius:8px;display:block}
+.wide figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.steps{list-style:none;margin:22px 0 28px;padding:0;border-top:1px solid var(--rule)}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid var(--rule);color:var(--text-2)}
+.steps li::before{content:attr(data-n);color:var(--faint);font-variant-numeric:tabular-nums}
+.steps b{color:var(--ink);font-weight:600}
+.card{background:var(--card);border-radius:12px;box-shadow:0 0 0 1px var(--rule),0 1px 2px rgb(0 0 0/.04);padding:6px 20px;margin:24px 0 26px}
+.card div{display:grid;grid-template-columns:116px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.card div:last-child{border-bottom:0}
+.card dt{color:var(--muted);font-size:13.5px}.card dd{margin:0}
+.card dd small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+pre{background:var(--card);box-shadow:0 0 0 1px var(--rule);border-radius:10px;padding:16px 18px;overflow-x:auto;font:12.5px/1.7 var(--mono);margin:22px 0 26px}
+pre .c{color:var(--muted)}
+ul.plain{margin:0 0 18px;padding-left:1.1em;color:var(--text-2)}
+ul.plain li{margin-bottom:10px}
+ul.plain b{color:var(--ink)}
+footer{margin-top:96px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:minmax(0,var(--column));padding-block:36px 96px}
+  .rail{display:none} main{grid-column:1}
+  .note{float:none;display:block;width:auto;margin:8px 0 0;padding-left:14px;top:0}
+  .note b{left:0}
+  .figure .side{position:static;width:auto;margin-top:12px}
+}
+@media (max-width:520px){
+  .strip{grid-template-columns:repeat(3,1fr)} .strip a:nth-child(n+4){display:none}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .keys div,.card div{grid-template-columns:1fr;gap:4px}
+  blockquote p{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body{font-size:14px;line-height:1.52}
+.wrap{--gap:36px;grid-template-columns:var(--rail) var(--column) var(--rail);padding-block:40px 110px}
+.rail{font-size:13px;line-height:1.55}
+.rail .brand{margin-bottom:26px;font-size:13.5px}
+.rail .sites{margin:0 0 30px}
+.rail .sites ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rail .sites a{color:var(--muted);text-decoration:none;display:block}
+.rail .sites a:hover{color:var(--ink)}
+.rail .sites a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+.rail .toc{display:grid;gap:6px}
+.rail .toc a{display:block}
+.rail .toc li{opacity:.9}
+.rail .toc a.on{color:var(--ink)}
+main{grid-column:2}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:30px}
+.top{display:none}
+.title{font-size:14px;font-weight:600;margin:0}
+.title span{font-weight:400;color:var(--muted)}
+.lede{font-size:16.5px;line-height:1.5;margin:0 0 12px;text-wrap:pretty}
+.meta{margin:10px 0 42px}
+.article{position:relative}
+.article h3{font-size:14px;font-weight:600;margin:34px 0 10px}
+.article p{margin:0 0 15px}
+.article ul,.article ol{margin:0 0 16px;padding-left:20px}
+.article li{margin:0 0 6px}
+.article blockquote{margin:34px 0 36px}
+.article blockquote p{font-size:24px;line-height:1.35}
+.article pre{background:var(--well);padding:14px 16px;border-radius:8px;overflow-x:auto;font:12px/1.7 var(--mono);margin:0 0 18px}
+.article pre code{background:none;padding:0}
+.article code{font-size:12px}
+.article hr{border:0;border-top:1px solid var(--rule);margin:40px 0}
+.sec{font-size:14px;margin:76px 0 18px;scroll-margin-top:24px}
+.sec:first-child{margin-top:0}
+.noted{position:relative}
+.note{position:absolute;left:calc(100% + var(--gap));top:-3px;width:var(--rail);font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+.note b{position:absolute;left:-13px;font-weight:400;font-size:10px;color:var(--faint)}
+
+.table{width:100%;border-collapse:collapse;margin:24px 0 30px;font-size:12.5px;line-height:1.5}
+.table th,.table td{padding:8px 14px 8px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+.table thead th{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule)}
+.table tbody th{font-weight:500;color:var(--text-2);white-space:nowrap;padding-right:26px}
+.table .num{font:11.5px/1.5 var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.table tbody tr:last-child th,.table tbody tr:last-child td{border-bottom:0}
+.ref a{color:var(--muted);text-decoration:none;font:9.5px var(--mono);padding-left:1px}
+.ref a:hover{color:var(--ink)}
+.note:target{color:var(--ink)}
+
+.fig{margin:40px 0 34px;position:relative}
+.fig svg,.fig canvas{display:block;width:100%;height:auto}
+.fig .side{position:absolute;top:36%;left:calc(100% + var(--gap));width:var(--rail);font-size:11.5px;line-height:1.7;color:var(--muted)}
+.fig .side kbd{font-size:10.5px;padding:1px 4px}
+.fig .readout{color:var(--ink);font:11.5px/1.7 var(--mono);margin-top:8px;font-variant-numeric:tabular-nums}
+.fig-cap{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px}
+.fig-cap b{font-weight:500;color:var(--text-2)}
+.pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--rule);margin-top:90px;padding-top:18px;font-size:13px}
+.pager a{text-decoration:none;color:var(--text-2)}
+.pager a:hover{color:var(--ink)}
+.pager span{color:var(--muted);font-size:12px}
+@media (max-width:1100px){
+  .wrap{display:block;padding:24px 16px 90px}
+  .rail{display:none}
+  .top{display:block;margin-bottom:18px}
+  .top ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;font-size:13px}
+  .top a{color:var(--muted);text-decoration:none}
+  .top a[aria-current="page"]{color:var(--ink)}
+  .noted{position:static}
+  .note{position:static;width:auto;margin:8px 0 16px;padding-left:14px;border-left:1px solid var(--rule)}
+  .note b{position:static;margin-right:6px}
+  .fig .side{position:static;width:auto;margin-top:10px}
+  .fig-cap{margin-top:8px}
+}
+@media (max-width:560px){
+  .table{font-size:12px;table-layout:fixed;width:100%}
+  .table th,.table td{padding:7px 6px;overflow-wrap:anywhere}
+  .lede{font-size:16px}
+  .article blockquote p{font-size:21px}
+}
+
+.gallery .classes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 16px}
+.gallery .classes button{appearance:none;border:0;background:var(--well);color:var(--text-2);border-radius:7px;padding:7px 8px;font:12.5px/1.4 var(--sans);cursor:pointer;transition:background .15s,color .15s;text-align:left}
+.gallery .classes button:hover{background:var(--well-2);color:var(--ink)}
+.gallery .classes button[aria-checked="true"]{background:var(--ink);color:var(--ground)}
+.gallery .sample{margin:0}
+.gallery .sample img{display:block;width:100%;height:auto;border-radius:10px;background:var(--well);box-shadow:0 0 0 1px var(--rule)}
+.gallery .sample figcaption{font-size:12px;color:var(--muted);margin-top:8px}
+@media (max-width:560px){.gallery .classes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style></head><body><div class="wrap">
+<aside class="rail"><a class="brand" href="index.html"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M9 2v22M17 2v22M6 6h14M6 13h14M6 20h14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="9.5" r="1.6" fill="var(--accent)"/></svg>rail_measure</a><nav class="sites" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html" aria-current="page">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><ol class="toc" aria-label="On this page"><li><a href="#classifier">Classifier</a></li><li><a href="#eight-classes">Eight classes</a></li><li><a href="#metrics">Metrics</a></li><li><a href="#running-it">Running it</a></li><li><a href="#limits">Limits</a></li></ol></aside>
+<main>
+<header class="masthead"><nav class="top" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html" aria-current="page">Defect recognition</a></li><li><a href="how-i-built-it.html">How I built it</a></li></ul></nav><h1 class="title">rail_measure <span>· Defect recognition</span></h1></header>
+<p class="lede">A fine-tuned vision transformer screens elevator components for mechanical wear, structural deformation, and contamination directly on edge compute.</p>
+<div class="meta"><span>v1.0.8</span><span>DINOv2 ViT-S/14</span><span>8 classes</span><span>RKNN / ONNX / OpenCV</span></div>
+<article class="article"><h2 class="sec" id="classifier"><span>Classifier</span><i>01</i></h2>
+<p>Defect screening is powered by a fine-tuned DINOv2 ViT-S/14 visual transformer running on Node 2. The network processes images as a whole-frame classification task rather than patch detection. Input frames are resized directly to 224×224 pixels without center cropping or edge clipping, ensuring that peripheral structural elements, fasteners, and bracket geometry remain visible within the receptive field.</p>
+<div class="noted"><aside class="note" id="note-1"><b>1</b>embedding normalization and softmax inside the graph removes preprocessing differences between runtimes; backend agreement is verified, not assumed</aside><p>To remove external preprocessing dependencies, input normalization and the final softmax layer are embedded in the exported model graph. This reduces runtime differences; agreement between backends is still checked separately.<sup class="ref"><a href="#note-1" id="ref-1">1</a></sup></p></div>
+<p>The system computes an overall anomaly score defined as <code>Anomaly score = 1 − P(normal)</code>. If the anomaly score meets or exceeds the default threshold of 0.5 (configurable via <code>anomaly_threshold</code>), the frame is flagged as an anomaly, and the model evaluates the most probable defect category.</p>
+<p>To prevent erratic classification when the network detects an irregular visual pattern but lacks strong class confidence, the system evaluates the top defect probability relative to the overall anomaly probability. If the top defect class accounts for less than 0.5 of the anomaly probability (<code>confidence_threshold: 0.5</code>), the prediction is categorized as &quot;undetermined&quot; rather than assigning a dubious defect label.</p>
+<h2 class="sec" id="eight-classes"><span>Eight classes</span><i>02</i></h2>
+<p>The classifier categorizes hoistway conditions into eight operational classes covering standard elevator inspection criteria:</p>
+<ol><li>Normal: components exhibiting expected mechanical configuration, clean surfaces, and correct clearances without visible distress.</li><li>Spacing / engagement: improper mechanical gaps between guide shoes and rail blades, misaligned interlocks, or irregular gear mesh.</li><li>Deformation, cracking, or aging: bent bracket flanges, structural metal fatigue cracks, or aged, brittle rubber vibration dampers.</li><li>Missing or loose parts: absent bolts, loosened lock nuts, displaced retaining clips, or unseated guide clips.</li><li>Oil sludge, dirt, or foreign objects: heavy accumulation of contaminated grease, fallen construction debris, or foreign obstructions in rail crevices.</li><li>Rust: surface oxidation, pitting corrosion on brackets, or structural rust along hoistway steelwork.</li><li>Wear: localized metal loss, grooving along rail friction faces, or scuffed guide liners.</li><li>Wire rope damage: broken wire strands, crown wire abrasions, rope necking, or core protrusion.</li></ol>
+<table class="table"><thead><tr><th scope="col">Class identifier</th><th scope="col">Visual description</th><th scope="col">Typical inspection focus</th></tr></thead><tbody><tr><th scope="row">normal</th><td>Pristine or correctly maintained component</td><td>Guide rails, shoes, brackets</td></tr><tr><th scope="row">clearance_engagement</th><td>Incorrect mechanical spacing or misalignment</td><td>Guide shoe clearance, door sills</td></tr><tr><th scope="row">deformation_crack_aging</th><td>Plastic deformation, fatigue cracks, aging</td><td>Rail joints, mounting brackets</td></tr><tr><th scope="row">missing_loose_part</th><td>Fasteners missing or visibly backed out</td><td>Fishplate bolts, clip assemblies</td></tr><tr><th scope="row">oil_dirt</th><td>Sludge accumulation, debris, foreign matter</td><td>Rail base, pit equipment</td></tr><tr><th scope="row">rust_corrosion</th><td>Oxidation, surface scaling, pitting</td><td>Guide rail bases, bracket steel</td></tr><tr><th scope="row">wear</th><td>Friction loss, surface scoring, stepped wear</td><td>Rail working face, guide inserts</td></tr><tr><th scope="row">wire_rope_damage</th><td>Crown wire breaks, abrasion, rope deformation</td><td>Suspension ropes, governor ropes</td></tr></tbody></table>
+<figure class="fig">
+<div class="gallery">
+  <div class="classes" role="radiogroup" aria-label="Defect classes"><button type="button" role="radio" aria-checked="true" tabindex="0" data-file="normal.jpg" data-label="No visible defect" data-source="asset_0185">No visible defect</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="clearance_engagement.jpg" data-label="Spacing or engagement" data-source="asset_0011">Spacing or engagement</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="deformation_crack_aging.jpg" data-label="Deformation, cracks, aging" data-source="asset_0030">Deformation, cracks, aging</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="missing_loose_part.jpg" data-label="Missing or loose part" data-source="asset_0316">Missing or loose part</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="oil_dirt.jpg" data-label="Oil, dirt, foreign object" data-source="asset_0033">Oil, dirt, foreign object</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="rust_corrosion.jpg" data-label="Rust" data-source="asset_0008">Rust</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="wear.jpg" data-label="Wear" data-source="asset_0017">Wear</button><button type="button" role="radio" aria-checked="false" tabindex="-1" data-file="wire_rope_damage.jpg" data-label="Wire-rope damage" data-source="asset_0371">Wire-rope damage</button></div>
+  <figure class="sample"><img id="defect-img" src="img/defect/normal.jpg" alt="No visible defect"><figcaption id="defect-cap">No visible defect · sample asset_0185</figcaption></figure>
+</div><p class="fig-cap"><b>Samples</b> · eight training photographs, resized to 900 px, watermarks removed; the caption keeps the source id. Labels printed on the equipment itself are part of the equipment, not site copy.</p></figure>
+<p>The gallery above shows one real training photograph per class, resized to 900 px and drawn from field maintenance archives. In the training copies, service watermarks, timestamps, and manual annotation circles were scrubbed so the transformer could not learn from them.</p>
+<h2 class="sec" id="metrics"><span>Metrics</span><i>03</i></h2>
+<p>The training dataset consists of 223 human-reviewed photographs (103 verified normal components and 120 verified defect cases), supplemented by original service tickets containing timestamps and maintenance annotations. Normal samples were extracted from post-repair verification photographs in maintenance tickets and baseline hoistway surveys, ensuring authentic component backgrounds.</p>
+<div class="noted"><aside class="note" id="note-2"><b>2</b>grouped cross-validation isolates before-and-after repair photo pairs into single folds to prevent visual leakage across validation splits</aside><p>Evaluation was conducted using grouped 5-fold cross-validation. The grouping strategy strictly segregated near-duplicate images, before-and-after maintenance photograph pairs, and images captured during the same maintenance visit into the same fold, preventing cross-fold visual leakage.<sup class="ref"><a href="#note-2" id="ref-2">2</a></sup></p></div>
+<p>Validation using frozen DINOv2 ViT-S/14 features coupled to a linear evaluation head established the baseline performance:</p>
+<ul><li>Normal versus anomaly detection achieved an AUROC of 0.93.</li><li>Overall 8-class top-1 accuracy reached 0.64.</li><li>Specific defect-type top-1 accuracy reached 0.59.</li></ul>
+<p>Given the modest size of the 223-image verified dataset, these performance metrics feature wide statistical error bounds. The fully fine-tuned end-to-end model is designed to match or exceed these linear probe benchmarks.</p>
+<h2 class="sec" id="running-it"><span>Running it</span><i>04</i></h2>
+<p>The defect detection service dynamically selects the highest-performance inference backend available on Node 2, executing through three backends in strict priority order:</p>
+<ol><li>RKNN: utilizes the dedicated hardware NPU of the Lubancat RK3588, executing an FP16 quantized model for maximum throughput and minimal CPU loading.</li><li>ONNX Runtime: executes on CPU, configured by default to use 2 worker threads (<code>threads: 2</code>) to ensure sufficient CPU capacity remains available for simultaneous stereo depth fusion.</li><li>OpenCV DNN: functions as an automated fallback engine, ensuring continuous operation even on lightweight hardware where specialized runtimes are absent.</li></ol>
+<p>During live video inspection from Cart B, the system applies exponential temporal smoothing with a weighting factor of 0.5 across consecutive frames, suppressing transient single-frame false alarms caused by lighting flicker or motion blur. For offline analysis, inspectors can upload static photos from a phone or laptop directly to <code>/api/defects/detect_image</code>. Single-photo uploads bypass temporal smoothing and execute immediate inference without requiring camera hardware to be connected.</p>
+<h2 class="sec" id="limits"><span>Limits</span><i>05</i></h2>
+<p>The visual classifier functions as a whole-frame image screener; it does not output bounding boxes or pixel masks to localize defects within the scene. An alert indicates that anomalous visual features exist within the frame, requiring the inspector to examine the physical component directly.</p>
+<p>Furthermore, the model only recognizes the eight discrete classes present in its training distribution. Unusual structural anomalies, uncataloged electrical faults, or novel component designs will either be flagged as undetermined or missed entirely.</p>
+<p>Most critically, negative classification does not constitute regulatory acceptance: the absence of a defect alarm cannot be used as legal proof of hoistway integrity. All screening outputs must be verified and signed off by a licensed human inspector.</p>
+<blockquote><p>Whole-frame classification flags suspicious hardware conditions to direct inspector focus but cannot substitute for certified hands-on examination.</p></blockquote></article>
+<div class="pager"><a href="spatial.html">← Spatial measurement</a><a href="how-i-built-it.html">How I built it →</a></div>
+</main></div>
+<script>
+const dark = matchMedia("(prefers-color-scheme: dark)");
+for (const box of document.querySelectorAll(".fig.iso")) {
+  const sync = () => { const t = document.documentElement.dataset.theme; box.dataset.theme = t ? t : dark.matches ? "dark" : "light"; };
+  sync(); dark.addEventListener("change", sync);
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+const links = [...document.querySelectorAll(".toc a")];
+const marks = [...document.querySelectorAll("h2.sec[id]")];
+const syncRail = () => {
+  if (!marks.length) return;
+  const y = scrollY + 120;
+  let cur = marks[0];
+  for (const s of marks) if (s.getBoundingClientRect().top + scrollY <= y) cur = s;
+  if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4) cur = marks[marks.length - 1];
+  for (const a of links) a.classList.toggle("on", a.getAttribute("href") === "#" + cur.id);
+};
+addEventListener("scroll", syncRail, { passive: true });
+syncRail();
+</script><script src="defect.js" defer></script></body></html>

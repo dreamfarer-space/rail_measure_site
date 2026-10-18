@@ -1,0 +1,231 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>How I built it · rail_measure</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"><style>
+/* 版式：左目录 168 · 正文 550 · 右旁注 168，三栏居中；窄屏只留正文，旁注随段落内联 */
+:root{
+  --ground:#fafafa; --ink:#171717; --text-2:#525252; --muted:#8f8f8f; --faint:#bdbdbd;
+  --rule:#ebebeb; --well:#f1f1f1; --card:#ffffff; --accent:#2f8a57;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --serif:"EB Garamond","Noto Serif SC","Songti SC",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --column:550px; --rail:168px; --gap:48px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#0e0e0e; --ink:#ececec; --text-2:#a8a8a8; --muted:#767676; --faint:#4a4a4a;
+  --rule:#232323; --well:#1b1b1b; --card:#151515; --accent:#5fcf91; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+em{font-family:var(--serif);font-style:italic;font-size:1.06em}
+code,kbd{font:12.5px/1 var(--mono);background:var(--well);padding:2px 5px;border-radius:4px;color:var(--ink)}
+.wrap{display:grid;grid-template-columns:var(--rail) var(--column) var(--rail);column-gap:var(--gap);justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:56px 120px}
+.rail{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));align-self:start;font-size:13.5px;line-height:1.95}
+.rail .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:500;margin-bottom:28px}
+.rail .brand svg{width:26px;height:26px;flex:none}
+.rail ol{list-style:none;margin:0;padding:0}
+.rail a{color:var(--muted);text-decoration:none}
+.rail a:hover,.rail a.on{color:var(--ink)}
+main{min-width:0;grid-column:2}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.top h1{font-size:15px;font-weight:600;margin:0}
+.top h1 span{font-weight:400;color:var(--muted)}
+.lede{font-size:16px;margin:18px 0 0}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;border-block:1px solid var(--rule);padding-block:16px;margin-top:22px}
+.strip img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;filter:grayscale(1) contrast(.9) brightness(1.08);opacity:.85;transition:filter .3s,opacity .3s}
+.strip a:hover img{filter:none;opacity:1}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;color:var(--muted);font-size:13.5px;margin:14px 0 36px}
+.meta>span+span::before{content:"·";margin-right:10px;color:var(--faint)}
+p{margin:0 0 16px}
+.para{position:relative}
+.ref{font-size:10px;color:var(--muted);margin-left:1px}
+.note{float:right;clear:right;width:var(--rail);margin-right:calc(-1 * (var(--rail) + var(--gap)));font-size:12.5px;line-height:1.6;color:var(--muted);position:relative;top:.3em}
+.note b{position:absolute;left:-14px;font-weight:400;font-size:10px}
+.figure{margin:56px 0 40px;position:relative}
+.figure .iso-stage{outline:none;cursor:ns-resize;touch-action:pan-x}
+.figure svg{display:block;width:100%;height:auto}
+.figure .side{position:absolute;top:44%;left:calc(100% + var(--gap));width:var(--rail);font-size:12.5px;color:var(--muted);line-height:1.9}
+.figure .side kbd{font-size:11px;padding:1px 5px}
+.figure .readout{color:var(--ink);font:12.5px/1.6 var(--mono);margin-top:10px;font-variant-numeric:tabular-nums;white-space:normal}
+.sec{display:flex;align-items:center;gap:16px;font-size:15px;font-weight:600;margin:88px 0 24px;scroll-margin-top:40px}
+.sec::after{content:"";flex:1;height:1px;background:var(--rule);order:1}
+.sec i{order:2;font-family:var(--serif);font-weight:400;color:var(--muted);font-size:16px}
+blockquote{margin:28px 0 30px;padding:0}
+blockquote p{font-family:var(--serif);font-size:27px;line-height:1.35;margin:0 0 6px;text-wrap:balance}
+blockquote cite{font-style:normal;font-size:12.5px;color:var(--muted)}
+.keys{border-top:1px solid var(--rule);margin:22px 0 28px}
+.keys div{display:grid;grid-template-columns:100px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.keys dt{margin:0}.keys dd{margin:0;color:var(--text-2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 18px;margin:30px 0 26px;text-align:center}
+.grid figure{margin:0}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;filter:grayscale(1) contrast(.92) brightness(1.06);transition:filter .35s}
+.grid figure:hover img{filter:none}
+.grid figcaption{font-size:13px;line-height:1.45;margin-top:8px}
+.grid figcaption span{display:block;color:var(--muted)}
+.wide{margin:30px 0 10px}
+.wide img{width:100%;border-radius:8px;display:block}
+.wide figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.steps{list-style:none;margin:22px 0 28px;padding:0;border-top:1px solid var(--rule)}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid var(--rule);color:var(--text-2)}
+.steps li::before{content:attr(data-n);color:var(--faint);font-variant-numeric:tabular-nums}
+.steps b{color:var(--ink);font-weight:600}
+.card{background:var(--card);border-radius:12px;box-shadow:0 0 0 1px var(--rule),0 1px 2px rgb(0 0 0/.04);padding:6px 20px;margin:24px 0 26px}
+.card div{display:grid;grid-template-columns:116px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.card div:last-child{border-bottom:0}
+.card dt{color:var(--muted);font-size:13.5px}.card dd{margin:0}
+.card dd small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+pre{background:var(--card);box-shadow:0 0 0 1px var(--rule);border-radius:10px;padding:16px 18px;overflow-x:auto;font:12.5px/1.7 var(--mono);margin:22px 0 26px}
+pre .c{color:var(--muted)}
+ul.plain{margin:0 0 18px;padding-left:1.1em;color:var(--text-2)}
+ul.plain li{margin-bottom:10px}
+ul.plain b{color:var(--ink)}
+footer{margin-top:96px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:minmax(0,var(--column));padding-block:36px 96px}
+  .rail{display:none} main{grid-column:1}
+  .note{float:none;display:block;width:auto;margin:8px 0 0;padding-left:14px;top:0}
+  .note b{left:0}
+  .figure .side{position:static;width:auto;margin-top:12px}
+}
+@media (max-width:520px){
+  .strip{grid-template-columns:repeat(3,1fr)} .strip a:nth-child(n+4){display:none}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .keys div,.card div{grid-template-columns:1fr;gap:4px}
+  blockquote p{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+body{font-size:14px;line-height:1.52}
+.wrap{--gap:36px;grid-template-columns:var(--rail) var(--column) var(--rail);padding-block:40px 110px}
+.rail{font-size:13px;line-height:1.55}
+.rail .brand{margin-bottom:26px;font-size:13.5px}
+.rail .sites{margin:0 0 30px}
+.rail .sites ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rail .sites a{color:var(--muted);text-decoration:none;display:block}
+.rail .sites a:hover{color:var(--ink)}
+.rail .sites a[aria-current="page"]{color:var(--ink);text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+.rail .toc{display:grid;gap:6px}
+.rail .toc a{display:block}
+.rail .toc li{opacity:.9}
+.rail .toc a.on{color:var(--ink)}
+main{grid-column:2}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:30px}
+.top{display:none}
+.title{font-size:14px;font-weight:600;margin:0}
+.title span{font-weight:400;color:var(--muted)}
+.lede{font-size:16.5px;line-height:1.5;margin:0 0 12px;text-wrap:pretty}
+.meta{margin:10px 0 42px}
+.article{position:relative}
+.article h3{font-size:14px;font-weight:600;margin:34px 0 10px}
+.article p{margin:0 0 15px}
+.article ul,.article ol{margin:0 0 16px;padding-left:20px}
+.article li{margin:0 0 6px}
+.article blockquote{margin:34px 0 36px}
+.article blockquote p{font-size:24px;line-height:1.35}
+.article pre{background:var(--well);padding:14px 16px;border-radius:8px;overflow-x:auto;font:12px/1.7 var(--mono);margin:0 0 18px}
+.article pre code{background:none;padding:0}
+.article code{font-size:12px}
+.article hr{border:0;border-top:1px solid var(--rule);margin:40px 0}
+.sec{font-size:14px;margin:76px 0 18px;scroll-margin-top:24px}
+.sec:first-child{margin-top:0}
+.noted{position:relative}
+.note{position:absolute;left:calc(100% + var(--gap));top:-3px;width:var(--rail);font-size:11.5px;line-height:1.55;color:var(--muted);margin:0}
+.note b{position:absolute;left:-13px;font-weight:400;font-size:10px;color:var(--faint)}
+
+.table{width:100%;border-collapse:collapse;margin:24px 0 30px;font-size:12.5px;line-height:1.5}
+.table th,.table td{padding:8px 14px 8px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
+.table thead th{font-size:10.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule)}
+.table tbody th{font-weight:500;color:var(--text-2);white-space:nowrap;padding-right:26px}
+.table .num{font:11.5px/1.5 var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.table tbody tr:last-child th,.table tbody tr:last-child td{border-bottom:0}
+.ref a{color:var(--muted);text-decoration:none;font:9.5px var(--mono);padding-left:1px}
+.ref a:hover{color:var(--ink)}
+.note:target{color:var(--ink)}
+
+.fig{margin:40px 0 34px;position:relative}
+.fig svg,.fig canvas{display:block;width:100%;height:auto}
+.fig .side{position:absolute;top:36%;left:calc(100% + var(--gap));width:var(--rail);font-size:11.5px;line-height:1.7;color:var(--muted)}
+.fig .side kbd{font-size:10.5px;padding:1px 4px}
+.fig .readout{color:var(--ink);font:11.5px/1.7 var(--mono);margin-top:8px;font-variant-numeric:tabular-nums}
+.fig-cap{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px}
+.fig-cap b{font-weight:500;color:var(--text-2)}
+.pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--rule);margin-top:90px;padding-top:18px;font-size:13px}
+.pager a{text-decoration:none;color:var(--text-2)}
+.pager a:hover{color:var(--ink)}
+.pager span{color:var(--muted);font-size:12px}
+@media (max-width:1100px){
+  .wrap{display:block;padding:24px 16px 90px}
+  .rail{display:none}
+  .top{display:block;margin-bottom:18px}
+  .top ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;font-size:13px}
+  .top a{color:var(--muted);text-decoration:none}
+  .top a[aria-current="page"]{color:var(--ink)}
+  .noted{position:static}
+  .note{position:static;width:auto;margin:8px 0 16px;padding-left:14px;border-left:1px solid var(--rule)}
+  .note b{position:static;margin-right:6px}
+  .fig .side{position:static;width:auto;margin-top:10px}
+  .fig-cap{margin-top:8px}
+}
+@media (max-width:560px){
+  .table{font-size:12px;table-layout:fixed;width:100%}
+  .table th,.table td{padding:7px 6px;overflow-wrap:anywhere}
+  .lede{font-size:16px}
+  .article blockquote p{font-size:21px}
+}
+</style></head><body><div class="wrap">
+<aside class="rail"><a class="brand" href="index.html"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M9 2v22M17 2v22M6 6h14M6 13h14M6 20h14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="9.5" r="1.6" fill="var(--accent)"/></svg>rail_measure</a><nav class="sites" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html" aria-current="page">How I built it</a></li></ul></nav><ol class="toc" aria-label="On this page"><li><a href="#starting-point">Starting point</a></li><li><a href="#first-probes">First probes</a></li><li><a href="#what-broke">What broke</a></li><li><a href="#the-second-bug">The second bug</a></li><li><a href="#the-site">The site</a></li><li><a href="#what-i-learned">What I learned</a></li></ol></aside>
+<main>
+<header class="masthead"><nav class="top" aria-label="Site"><ul><li><a href="index.html">rail_measure</a></li><li><a href="verticality.html">Verticality</a></li><li><a href="spatial.html">Spatial measurement</a></li><li><a href="defect.html">Defect recognition</a></li><li><a href="how-i-built-it.html" aria-current="page">How I built it</a></li></ul></nav><h1 class="title">rail_measure <span>· How I built it</span></h1></header>
+<p class="lede">An engineering log on building an offline inspection instrument, debugging synthetic edge cases, and catching aliased vibrations before field deployment.</p>
+<div class="meta"><span>v1.0.8</span><span>Issues #20 &amp; #25</span><span>Synthetic probes</span><span>Static site</span></div>
+<article class="article"><h2 class="sec" id="starting-point"><span>Starting point</span><i>01</i></h2>
+<p>When I started building rail_measure, the goal was to replace manual plumb lines and handwritten inspection sheets with an offline, edge-computed instrument. The physical architecture split sensing across two hardware nodes: Cart A carrying a Raspberry Pi, an OAK-D Pro W camera, and a laser rangefinder to measure rail verticality, while Cart B carried an RK3588 board to handle stereo depth clearances and defect recognition.</p>
+<p>The first synthetic tests were deceptively encouraging. On clean frames with a stationary Gaussian spot and no reflections, subpixel centroid tracking looked trivial: 20 unsaturated frames gave 0.046 px RMS, and 20 frames with a saturated core gave 0.016 px RMS. On ideal images, finding the centre of a laser beam looked like a solved problem.</p>
+<h2 class="sec" id="first-probes"><span>First probes</span><i>02</i></h2>
+<p>I knew that testing an experimental instrument inside an active elevator hoistway is slow, expensive, and unforgiving. If a vision algorithm locks up or misinterprets an optical reflection halfway down a forty-story shaft, you cannot easily attach a debugger or replay optical conditions.</p>
+<p>Before bringing the hardware to a job site, I built a suite of synthetic software probes in Python to systematically assault the vision pipeline. These probes modeled physical imperfections: saturated specular reflections from polished rail steel, beam clipping along image boundaries, diffuse secondary halos from paper fiber scattering, and continuous cart velocity.</p>
+<div class="noted"><aside class="note" id="note-1"><b>1</b>synthetic probes exposed that simple centroid algorithms interpret border clipping and metallic reflections as legitimate guide rail deviations</aside><p>The results of those synthetic probes dismantled my initial confidence. The textbook algorithms that performed impeccably on symmetrical test spots failed abruptly when confronted with real-world hoistway optics. Instead of small random errors, the system exhibited large, systematic measurement biases that could easily misclassify a warped guide rail as straight, or an aligned rail as out of tolerance.<sup class="ref"><a href="#note-1" id="ref-1">1</a></sup></p></div>
+<h2 class="sec" id="what-broke"><span>What broke</span><i>03</i></h2>
+<p>The failures uncovered by the synthetic test harness culminated in Issue #20, exposing five distinct vulnerabilities:</p>
+<ul><li>Saturated white reflection: a 20×20 px pure white, fully saturated block was accepted as a valid laser spot at (309.5, 209.5) because saturation logic previously skipped the green test. The detector now requires at least <code>min_halo_px</code> unsaturated green pixels, rejecting halo-free metallic reflections.</li><li>Asymmetric secondary halo: simulating paper scattering with a secondary half-intensity halo positioned 8 px to the right shifted the intensity centroid to x = 322.4277 instead of 320 (2.43 px error). Ambiguous candidates exceeding <code>max_competing_ratio</code> (default 0.5) are now rejected.</li><li>Boundary clipping: at x = 2 px, the centroid returned x = 3.9208 (1.92 px inward bias); at x = 5 px, the bias was 0.74 px. Candidates touching the frame or ROI border are marked <code>clipped</code> and discarded.</li><li>Tracking loss: after tracking loss, a white reflection at (479.5, 329.5) was picked up as the target. Tracking now restricts reacquisition to <code>track_gate_px</code>.</li><li>Moving window: 15 frames over 0.42 s moving from x = 100 to 114 passed all filters (mean 107, std 4.47 px), lagging 7 px (approximately 1.80 mm at default scale) behind the newest position. Linear drift and jitter checks now reject moving windows.</li></ul>
+<table class="table"><thead><tr><th scope="col">Failure condition</th><th scope="col">Observed synthetic error</th><th scope="col">Root algorithmic cause</th><th scope="col">Quality gate countermeasure</th></tr></thead><tbody><tr><th scope="row">Saturated white block</th><td>Accepted at (309.5, 209.5)</td><td>Saturation bypassed green excess check</td><td>Require <code>min_halo_px</code> unsaturated green pixels</td></tr><tr><th scope="row">Asymmetric halo (+8 px)</th><td>Centroid biased by +2.43 px</td><td>Intensity weighting dragged by the attached halo</td><td>Not caught: elongation stays below threshold, bias remains</td></tr><tr><th scope="row">Boundary truncation (x=2)</th><td>Centroid biased inward by +1.92 px</td><td>Missing pixels shift intensity center</td><td>Mark as <code>clipped</code> and discard from averaging</td></tr><tr><th scope="row">Tracking reacquisition</th><td>Locked onto glare at (479.5, 329.5)</td><td>Global search without spatial context</td><td>Restrict reacquisition to <code>track_gate_px</code></td></tr><tr><th scope="row">Continuous window motion</th><td>Lagged 7 px (1.80 mm) behind true position</td><td>Outlier filter cannot detect linear trend</td><td>Linear fit drift check (<code>average_max_drift_px</code>)</td></tr></tbody></table>
+<p>The detector now enforces the <code>verticality.detection.*</code> gate suite to validate candidates before they enter window averaging.</p>
+<h2 class="sec" id="the-second-bug"><span>The second bug</span><i>04</i></h2>
+<p>Even with quality gates in place, a far more deceptive flaw emerged during vibration testing, documented in Issue #25.</p>
+<p>Guide rails vibrate as carts travel. Simulating a 10 Hz vibration with 4 px amplitude sampled at 30 fps over 0.5 s (15 frames) created a harmonic lock: every frame landed on one of three phases: 5 frames at 324 px and 10 frames at 318 px (true center 320 px).</p>
+<p>The median of the 15 frames was 318 px. Because 10 frames sat on the median, MAD evaluated to zero, clamping the threshold to ±0.35 px. The algorithm deleted the 5 peak frames at 324 px as outliers. The surviving 10 frames had zero variance and zero slope. Because stability was checked after outlier removal, the system declared the reading stable: it output dx = −0.513 mm with std = 0.0000 mm—a fabricated perfect measurement with a half-millimeter bias. Across 500 randomized trials, this passed 130 times (26%) with 1.99 px RMS error from true center.</p>
+<p>The shipped fix caps outlier rejection at 15% (<code>outlier_max_fraction</code>), which catches the 33% cull here. The raw-spread pre-check and the one-sided rejection test suggested in #25 are not implemented.</p>
+<div class="noted"><aside class="note" id="note-2"><b>2</b>harmonic aliasing between frame rate and hoistway vibration caused MAD filtering to discard true physical oscillations and report fabricated zero-variance measurements</aside><p>Residual risks remain documented: asymmetric attached halos still induce up to 2.44 px single-frame bias at an 8 px offset; ChArUco calibration outside the covered area reaches 22.95 px error even though the covered area fell from 1.27 px to 0.54 px.<sup class="ref"><a href="#note-2" id="ref-2">2</a></sup></p></div>
+<h2 class="sec" id="the-site"><span>The site</span><i>05</i></h2>
+<p>I structured this documentation site to reflect the same engineering principles that govern the instrument itself. There is no modern web framework, no npm dependency tree, and no runtime telemetry. The site is generated as static HTML using a minimal JavaScript builder that compiles Markdown source files into clean, readable layouts.</p>
+<p>Every interactive diagram on these pages—from the linked laser spot simulator to the spatial clearance viewer and the quality gate visualizer—is built directly using hand-crafted SVG elements and native HTML5 canvas scripts. Nothing is imported from external charting libraries.</p>
+<p>Every threshold and failure metric on this site is traced to repository code, configuration, or the two issue logs. Numbers that come from a synthetic probe are labelled as such; numbers that only illustrate a mechanism, such as the 3.2 mm per unit in the spatial figure, are labelled illustrative and are not presented as measurements.</p>
+<h2 class="sec" id="what-i-learned"><span>What I learned</span><i>06</i></h2>
+<p>Building an offline industrial inspection tool taught me that field robustness is an exercise in disciplined paranoia. In an elevator shaft, every assumption an engineer makes about uniform lighting, clean surfaces, or random noise will eventually be violated by real hardware. If an algorithm contains a blind spot where harmonic vibration mimics static stability, the physical structure will inevitably find that frequency and produce flawed numbers.</p>
+<p>I learned that synthetic software probes are vastly more effective for algorithm validation than early field trials. Had I taken the initial verticality code directly into a customer hoistway, the subtle half-millimeter bias caused by harmonic aliasing would have blended unnoticed into background mechanical tolerances. Creating rigorous, adversarial probes in Python allowed me to isolate, reproduce, and eliminate edge-case failures before cutting metal or mounting sensors.</p>
+<p>Finally, I came to appreciate that the integrity of a measurement instrument rests entirely on naming its operational boundaries. When an edge node cannot guarantee subpixel certainty due to uncalibrated lens regions, attached halos, or occluded clearance grids, the software must refuse to guess. True utility comes not from projecting an illusion of infallibility, but from delivering dependable, verifiable screening data that empowers human inspectors to make safe, defensible decisions.</p>
+<blockquote><p>An engineering instrument proves its reliability by explicitly naming its boundaries rather than concealing failure modes behind artificial stability.</p></blockquote></article>
+<div class="pager"><a href="defect.html">← Defect recognition</a></div>
+</main></div>
+<script>
+const dark = matchMedia("(prefers-color-scheme: dark)");
+for (const box of document.querySelectorAll(".fig.iso")) {
+  const sync = () => { const t = document.documentElement.dataset.theme; box.dataset.theme = t ? t : dark.matches ? "dark" : "light"; };
+  sync(); dark.addEventListener("change", sync);
+  new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+const links = [...document.querySelectorAll(".toc a")];
+const marks = [...document.querySelectorAll("h2.sec[id]")];
+const syncRail = () => {
+  if (!marks.length) return;
+  const y = scrollY + 120;
+  let cur = marks[0];
+  for (const s of marks) if (s.getBoundingClientRect().top + scrollY <= y) cur = s;
+  if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4) cur = marks[marks.length - 1];
+  for (const a of links) a.classList.toggle("on", a.getAttribute("href") === "#" + cur.id);
+};
+addEventListener("scroll", syncRail, { passive: true });
+syncRail();
+</script></body></html>

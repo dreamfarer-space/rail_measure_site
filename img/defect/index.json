@@ -1,0 +1,53 @@
+{
+  "dataset": "elevator_defect_detection",
+  "classes": [
+    {
+      "code": "normal",
+      "label": "未见明显异常",
+      "file": "normal.jpg",
+      "source": "asset_0185"
+    },
+    {
+      "code": "clearance_engagement",
+      "label": "间距或啮合异常",
+      "file": "clearance_engagement.jpg",
+      "source": "asset_0011"
+    },
+    {
+      "code": "deformation_crack_aging",
+      "label": "变形、裂纹或老化",
+      "file": "deformation_crack_aging.jpg",
+      "source": "asset_0030"
+    },
+    {
+      "code": "missing_loose_part",
+      "label": "部件缺失或松动",
+      "file": "missing_loose_part.jpg",
+      "source": "asset_0316"
+    },
+    {
+      "code": "oil_dirt",
+      "label": "油泥、积污或异物",
+      "file": "oil_dirt.jpg",
+      "source": "asset_0033"
+    },
+    {
+      "code": "rust_corrosion",
+      "label": "锈蚀",
+      "file": "rust_corrosion.jpg",
+      "source": "asset_0008"
+    },
+    {
+      "code": "wear",
+      "label": "磨损",
+      "file": "wear.jpg",
+      "source": "asset_0017"
+    },
+    {
+      "code": "wire_rope_damage",
+      "label": "钢丝绳损伤",
+      "file": "wire_rope_damage.jpg",
+      "source": "asset_0371"
+    }
+  ]
+}
