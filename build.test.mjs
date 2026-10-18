@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAll, contentDir } from "./build.mjs";
-import { distanceMm, clearanceMm, OBSTACLE_HEIGHT } from "./figures/spatial.mjs";
+import * as SC from "./figures/spatialcore.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const files = buildAll();
@@ -62,11 +62,12 @@ test("verticality has all three figures and the linked lab", () => {
   assert.ok(h.includes('data-case="vibration"'));
 });
 
-test("spatial has both figures and the mm/unit note", () => {
+test("spatial has Cart B and both measurement figures", () => {
   const h = pages.spatial;
+  assert.ok(h.includes('class="sp-stage"'));
   assert.ok(h.includes('id="sp-two"'));
   assert.ok(h.includes('id="sp-clear"'));
-  assert.ok(h.includes("3.2 mm"));
+  assert.ok(h.includes("car_top.py"));
 });
 
 test("defect gallery has eight English classes", () => {
@@ -119,9 +120,26 @@ test("tables use row headers and no vertical rules", () => {
   assert.ok(h.includes('<table class="table">'));
 });
 
-test("spatial maths still hold", () => {
-  assert.equal(Math.round(clearanceMm(168, 56 + OBSTACLE_HEIGHT, 3.2)), 326);
-  assert.equal(distanceMm({ x: 0, y: 0 }, { x: 3, y: 4 }, 10), 50);
+test("spatial model: two points along gravity and car-top clearance", () => {
+  const cam = SC.cameraOf();
+  const scene = SC.sceneOf();
+  const px = (p) => SC.project(cam, p).slice(0, 2).map(Math.round);
+  // bracket clips 1140 mm apart vertically on the far wall
+  const two = SC.twoPoint(scene, cam, px([-90, -530, 2272]), px([90, 610, 2272]));
+  assert.ok(two.ok);
+  assert.ok(Math.abs(two.dv - 1140) < 15, `dv ${two.dv}`);
+  assert.ok(Math.abs(two.D - Math.hypot(two.dv, two.dh)) < 1e-6);
+  // a hoist rope gives no depth
+  assert.equal(SC.depthAt(scene, cam, ...px([-280, 0, 2117])).reason, "thin");
+  // beam 1750 mm above the car top
+  const ok = SC.clearance(scene, cam, [110, 366, 530, 398], [40, 34, 600, 96]);
+  assert.ok(ok.ok, ok.reason);
+  assert.ok(Math.abs(ok.min - 1750) < 25, `min ${ok.min}`);
+  // reference box on the wall: the plane is vertical, so it is rejected
+  assert.equal(SC.clearance(scene, cam, [370, 200, 470, 260], [40, 34, 600, 96]).code, "base_tilt");
+  // glare on the beam underside leaves too little valid depth above
+  const glare = SC.clearance(SC.sceneOf({ glare: true }), cam, [110, 366, 530, 398], [40, 34, 600, 96]);
+  assert.ok(!glare.ok || glare.warnings.length, "glare must reject or warn");
 });
 
 test("detector port reproduces the #20 and #25 probes", async () => {

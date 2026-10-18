@@ -12,6 +12,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const contentDir = process.env.RAIL_SITE_CONTENT || join(HERE, "content");
 const VERSION = readFileSync(join(HERE, "VERSION"), "utf8").trim();
 const fig = JSON.parse(readFileSync(join(HERE, "vendor", "verticality-embed.json"), "utf8"));
+const cartB = JSON.parse(readFileSync(join(HERE, "vendor", "spatial-embed.json"), "utf8"));
+const cartSvg = (name) => readFileSync(join(HERE, "vendor", name.split("/").pop()), "utf8");
 const samples = JSON.parse(readFileSync(join(HERE, "img", "defect", "index.json"), "utf8"));
 const LABEL_EN = {
   normal: "No visible defect",
@@ -84,14 +86,42 @@ export const FIGURES = {
     script: spotScript,
   },
   "spatial-two": {
-    html: `<figure class="fig">${spatialTwoMarkup}<p class="fig-cap"><b>Two-point distance</b> · drag an endpoint or focus it and use the arrow keys; 1 unit = 3.2 mm, illustrative</p></figure>`,
+    html: `<figure class="fig">${spatialTwoMarkup}</figure>
+<p class="fig-cap"><b>Two points</b> · one modelled shaft seen twice: left from outside, right through Cart B's camera (simplified pinhole, 100° wide) as the operator panel shows it; depth carries stereo noise that grows with distance squared, and hoist ropes return none</p>`,
     css: spatialCss,
     script: spatialScript,
   },
   "spatial-clear": {
-    html: `<figure class="fig">${spatialClearMarkup}<p class="fig-cap"><b>Car-top clearance</b> · the obstruction is measured from its lower face; unknown cells are not free space</p></figure>`,
+    html: `<figure class="fig">${spatialClearMarkup}</figure>
+<p class="fig-cap"><b>Car-top clearance</b> · the same shaft; reference plane by RANSAC, a 6 × 8 grid over the upper box, the 5th-percentile height per cell and the reject rules of <code>car_top.py</code> with its default thresholds</p>`,
     css: spatialCss,
     script: spatialScript,
+  },
+  "cart-b": {
+    html: `<figure class="fig iso fig" data-theme="light">${cartB.stage}<div class="side"><p class="s-hint">Point at the figure to aim the camera</p><p class="s-keys"><kbd>←</kbd><kbd>→</kbd> pan</p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> tilt · <kbd>Home</kbd> level</p><div class="s-group"><span>Camera</span><dl class="s-read" data-sp-readout aria-live="off"></dl></div></div></figure>
+<p class="fig-cap"><b>Cart B</b> · drawn from the cart itself; servo ranges from <code>web/src/lib/robot.ts</code>, field of view of the OAK-D Pro W; the car top is drawn closer than in a real shaft, and distances use the drawing scale</p>`,
+    css: cartB.css + ".sp-stage{cursor:crosshair}",
+    script: `(() => {
+${cartB.script}
+})();`,
+  },
+  robots: {
+    html: `<figure class="fig iso robots" data-theme="light"><div class="pair">
+<div><a href="verticality.html" aria-label="Cart A, verticality">${cartSvg("verticality/verticality-cart.svg")}</a><p><b>Cart A</b> · node 1 · verticality<span>target board, camera behind it, rangefinder below</span></p></div>
+<div><a href="spatial.html" aria-label="Cart B, spatial measurement">${cartSvg("spatial/spatial-cart.svg")}</a><p><b>Cart B</b> · node 2 · spatial and defects<span>depth camera on a pan and tilt servo head</span></p></div>
+</div></figure>
+<p class="fig-cap"><b>Two carts</b> · the same crawler: two timing-belt tracks clamp the rail blade, rollers run on its face and a jaw with amber pads holds the upper end; only the payload differs</p>`,
+    css: cartB.css.split(".sp-foot")[0] + `
+.robots .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.robots a{display:block;text-decoration:none}
+.robots svg{transition:transform .4s cubic-bezier(.32,.72,0,1)}
+.robots a:hover svg{transform:translateY(-3px)}
+.robots p{margin:4px 0 0;font-size:12.5px;line-height:1.45;color:var(--text-2)}
+.robots p b{font-weight:600;color:var(--ink)}
+.robots p span{display:block;font-size:11.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.robots svg{transition:none}}
+`,
+    script: "",
   },
   "defect-gallery": {
     html: `<figure class="fig">${gallery}<p class="fig-cap"><b>Samples</b> · eight training photographs, resized to 900 px, watermarks removed; the caption keeps the source id. Labels printed on the equipment itself are part of the equipment, not site copy.</p></figure>`,
@@ -264,9 +294,9 @@ function parseFrontmatter(raw) {
 const ORDER = ["index", "verticality", "spatial", "defect", "how-i-built-it"];
 
 const PAGES = {
-  index: { file: "index.html", nav: "rail_measure", current: "index.html", figures: [], strip: true },
+  index: { file: "index.html", nav: "rail_measure", current: "index.html", figures: ["robots"], strip: true },
   verticality: { file: "verticality.html", nav: "Verticality", current: "verticality.html", figures: ["principle", "spotlab", "quality"] },
-  spatial: { file: "spatial.html", nav: "Spatial measurement", current: "spatial.html", figures: ["spatial-two", "spatial-clear"] },
+  spatial: { file: "spatial.html", nav: "Spatial measurement", current: "spatial.html", figures: ["cart-b", "spatial-two", "spatial-clear"] },
   defect: { file: "defect.html", nav: "Defect recognition", current: "defect.html", figures: ["defect-gallery"] },
   "how-i-built-it": { file: "how-i-built-it.html", nav: "How I built it", current: "how-i-built-it.html", figures: [] },
 };
@@ -283,7 +313,7 @@ export function buildAll() {
     const raw = readFileSync(join(contentDir, `${slug}.md`), "utf8").replaceAll(String.fromCharCode(13), "");
     const { meta, body } = parseFrontmatter(raw);
     const { html, toc } = renderMarkdown(body);
-    const extraCss = cfg.figures.map((k) => FIGURES[k].css).join("\n") + (cfg.strip ? stripCss : "");
+    const extraCss = [...new Set(cfg.figures.map((k) => FIGURES[k].css))].join("\n") + (cfg.strip ? stripCss : "");
     const extraScript = [...new Set(cfg.figures.flatMap((k) => FIGURES[k].script))].join("\n");
     const scriptFile = `${slug}.js`;
     if (extraScript) writeFileSync(join(HERE, scriptFile), extraScript);

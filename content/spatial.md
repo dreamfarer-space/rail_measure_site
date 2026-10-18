@@ -10,6 +10,10 @@ meta: 200–12000 mm range · RANSAC reference plane · Four evidence files
 
 Spatial measurement is executed by Node 2 utilizing an OAK-D Pro W stereo camera equipped with an infrared speckle dot projector and an integrated inertial measurement unit (IMU). The active IR pattern projects textured speckles onto featureless hoistway surfaces, enabling stereo disparity matching across dark, untextured concrete walls, metal brackets, and elevator car tops.
 
+Cart B carries the camera on a two-servo head. Servo 5 turns a disc on four standoffs through 0–180°; servo 6, lying on that disc, tilts a U-bracket through 45–135°, and the camera hangs at the bracket's end with its heatsink to the back. At 90° and 90° it looks straight out of the cart into the shaft; tilting toward 45° brings the car top below into view.
+
+[[figure:cart-b]]
+
 The camera is configured for a 200–12000 mm depth range; that is a working envelope, not a guarantee of accuracy across the whole span. To prevent operators from taking measurements against stale image frames during intermittent network latency or hardware stalls, the system enforces strict timestamp freshness. If camera frame data is older than 2 s, snapshot and calculation endpoints immediately return HTTP 503 Service Unavailable, preventing operators from confirming measurements against outdated scene states.
 
 ## Two points {#two-points}

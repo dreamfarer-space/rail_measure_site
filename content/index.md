@@ -33,6 +33,8 @@ The inspection workflow groups physical hoistway evaluation into three specializ
 
 Physical sensing is divided across two edge nodes on the site LAN. Node 1 rides on Cart A to track the plumb line and vertical travel height. Node 2 rides on Cart B, serving the web UI on port 8080 and executing spatial depth calculations alongside visual defect classification while polling Node 1 for health.
 
+[[figure:robots]]
+
 | Node | Hardware platform | Network ports | Functional role |
 |---|---|---|---|
 | Node 1 | Raspberry Pi 4B/5, OAK-D Pro W (IMX378), USB rangefinder | WebSocket 8765, HTTP 8081 | Plumb laser spot tracking and vertical travel height |
