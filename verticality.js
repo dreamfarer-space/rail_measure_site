@@ -715,7 +715,7 @@ function draw() {
   const over = Math.abs(dx) > TOL || Math.abs(dy) > TOL;
   tol.setAttribute("data-tone", over ? "red" : "mid");
   const text = "H " + H.toFixed(2) + " m · dX " + fmt(dx) + " · dY " + fmt(dy) + " mm · " + (over ? "out of tolerance" : "within tolerance");
-  if (readout.textContent !== text) readout.textContent = text;
+  if (readout.dataset.text !== text) { readout.dataset.text = text; readout.innerHTML = "<dt>Height</dt><dd>" + H.toFixed(2) + " m</dd><dt>dX</dt><dd>" + fmt(dx) + " mm</dd><dt>dY</dt><dd>" + fmt(dy) + " mm</dd><dt>Status</dt><dd class=\"" + (over ? "bad" : "ok") + "\">" + (over ? "out of tolerance" : "within tolerance") + "</dd>"; }
   stage.setAttribute("aria-valuenow", H.toFixed(1));
   stage.setAttribute("aria-valuetext", text);
 }
@@ -755,118 +755,472 @@ stage.addEventListener("keydown", (event) => {
 draw();
 
 
+const RS = (() => {
+const DETECTION = {"min_contrast":25,"noise_k":6,"min_area":4,"max_area":6000,"max_aspect":3,"min_fill":0.3,"min_green_excess":10,"saturation_level":250,"max_saturated_frac":0.2,"min_halo_px":8,"track_gate_px":40,"max_competing_ratio":0.5};
+const AVERAGING = {"window_sec":0.5,"min_samples":5,"mad_k":3.5,"mad_floor_px":0.5,"max_outlier_fraction":0.15,"max_std_px":2.5,"max_drift_px":2,"drift_t":3};
+const BEFORE_20 = {"detect":{"legacy":true},"average":{"mad_floor_px":0.1,"max_outlier_fraction":-1,"max_std_px":0,"max_drift_px":0}};
+const BEFORE_25 = {"detect":{},"average":{"mad_floor_px":0.1,"max_outlier_fraction":-1}};
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function paperFrame(w = 640, h = 480, seed = 0, bgr = [170, 178, 172], noise = 2) {
+  const rand = mulberry32(seed + 1);
+  const ch = bgr.map(() => new Float32Array(w * h));
+  for (let c = 0; c < 3; c++) {
+    const a = ch[c];
+    for (let i = 0; i < a.length; i += 2) {
+      const u = Math.max(rand(), 1e-12), v = rand();
+      const m = Math.sqrt(-2 * Math.log(u)) * noise;
+      a[i] = bgr[c] + m * Math.cos(2 * Math.PI * v);
+      if (i + 1 < a.length) a[i + 1] = bgr[c] + m * Math.sin(2 * Math.PI * v);
+    }
+  }
+  return { w, h, ch };
+}
+function addSpot(f, cx, cy, sigma = 6, amp = [60, 400, 90]) {
+  const r = Math.ceil(sigma * 5);
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(f.w - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(f.h - 1, Math.ceil(cy + r));
+  const k = 1 / (2 * sigma * sigma);
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const g = Math.exp(-((x - cx) * (x - cx) + (y - cy) * (y - cy)) * k);
+      const i = y * f.w + x;
+      for (let c = 0; c < 3; c++) f.ch[c][i] += amp[c] * g;
+    }
+  }
+  return f;
+}
+function fillRect(f, x0, y0, x1, y1, value = 255) {
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let c = 0; c < 3; c++) f.ch[c][y * f.w + x] = value;
+  return f;
+}
+function toU8(f) {
+  const ch = f.ch.map((a) => {
+    const o = new Uint8Array(a.length);
+    for (let i = 0; i < a.length; i++) { const v = a[i]; o[i] = v <= 0 ? 0 : v >= 255 ? 255 : v | 0; }
+    return o;
+  });
+  return { w: f.w, h: f.h, b: ch[0], g: ch[1], r: ch[2] };
+}
+function median(values) {
+  const s = Float64Array.from(values).sort();
+  const n = s.length;
+  return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+}
+function detectSpot(img, prev = null, params = {}) {
+  const p = { ...DETECTION, ...params };
+  const { w, h, g, r, b } = img;
+  const sample = [];
+  for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) sample.push(g[y * w + x]);
+  const background = median(sample);
+  const noise = median(sample.map((v) => Math.abs(v - background))) * 1.4826;
+  const threshold = Math.max(p.min_contrast, p.noise_k * noise);
+
+  const labels = new Int32Array(w * h);
+  const comps = [];
+  const stack = new Int32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    if (labels[i] || g[i] - background <= threshold) continue;
+    const id = comps.length + 1;
+    let top = 0, area = 0, minx = w, miny = h, maxx = 0, maxy = 0;
+    stack[top++] = i;
+    labels[i] = id;
+    while (top) {
+      const j = stack[--top];
+      const x = j % w, y = (j - x) / w;
+      area++;
+      if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y;
+      for (let dy = -1; dy <= 1; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= h) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= w) continue;
+          const k = yy * w + xx;
+          if (!labels[k] && g[k] - background > threshold) { labels[k] = id; stack[top++] = k; }
+        }
+      }
+    }
+    comps.push({ label: id, bbox: [minx, miny, maxx - minx + 1, maxy - miny + 1], area });
+  }
+  if (!comps.length) return null;
+  comps.sort((a, c) => c.area - a.area);
+
+  const considered = [];
+  const candidates = [];
+  for (const c of comps.slice(0, 50)) {
+    const [x, y, bw, bh] = c.bbox;
+    const reject = (why) => considered.push({ bbox: c.bbox, why });
+    if (c.area < p.min_area || c.area > p.max_area) { reject("size"); continue; }
+    if (Math.max(bw, bh) / Math.max(1, Math.min(bw, bh)) > p.max_aspect) { reject("aspect"); continue; }
+    if (c.area / (bw * bh) < p.min_fill) { reject("fill"); continue; }
+    let sat = 0, unsat = 0, ge = 0, peak = 0, energy = 0;
+    for (let yy = y; yy < y + bh; yy++) {
+      for (let xx = x; xx < x + bw; xx++) {
+        const k = yy * w + xx;
+        if (labels[k] !== c.label) continue;
+        const gg = g[k];
+        if (gg > peak) peak = gg;
+        energy += gg - background;
+        if (gg >= p.saturation_level) sat++;
+        else { unsat++; ge += gg - Math.max(r[k], b[k]); }
+      }
+    }
+    const greenExcess = unsat ? ge / unsat : NaN;
+    if (p.legacy) {
+      if (unsat && greenExcess < p.min_green_excess) { reject("colour"); continue; }
+    } else {
+      if (unsat < p.min_halo_px) { reject("halo"); continue; }
+      if (greenExcess < p.min_green_excess) { reject("colour"); continue; }
+    }
+    const cand = { label: c.label, bbox: c.bbox, area: c.area, peak, energy, halo: unsat, saturated_frac: sat / c.area, green_excess: greenExcess };
+    candidates.push(cand);
+    considered.push({ bbox: c.bbox, why: null, cand });
+  }
+  if (!candidates.length) return { none: true, considered, background, threshold };
+
+  let best = null;
+  let tracked = false;
+  if (prev && !p.legacy) {
+    const near = candidates.filter((c) => {
+      const [x, y, bw, bh] = c.bbox;
+      return Math.hypot(x + bw / 2 - prev[0], y + bh / 2 - prev[1]) <= p.track_gate_px;
+    });
+    if (near.length) { best = near.reduce((a, c) => (c.energy > a.energy ? c : a)); tracked = true; }
+  }
+  if (!best) best = candidates.reduce((a, c) => (c.energy > a.energy ? c : a));
+  const others = candidates.filter((c) => c !== best).map((c) => c.energy);
+  const competing = others.length && best.energy > 0 ? Math.max(...others) / best.energy : 0;
+
+  const [x, y, bw, bh] = best.bbox;
+  const pad = Math.max(2, Math.floor(0.25 * Math.max(bw, bh)));
+  const xa = Math.max(0, x - pad), ya = Math.max(0, y - pad);
+  const xb = Math.min(w, x + bw + pad), yb = Math.min(h, y + bh + pad);
+  let total = 0, sx = 0, sy = 0, edge = false;
+  for (let yy = ya; yy < yb; yy++) {
+    for (let xx = xa; xx < xb; xx++) {
+      const k = yy * w + xx;
+      const lab = labels[k];
+      let wt = g[k] - background - 0.5 * threshold;
+      if (wt < 0 || (lab !== 0 && lab !== best.label)) wt = 0;
+      if (!wt) continue;
+      total += wt; sx += wt * xx; sy += wt * yy;
+      if ((xa === 0 && xx === 0) || (ya === 0 && yy === 0) || (xb === w && xx === w - 1) || (yb === h && yy === h - 1)) edge = true;
+    }
+  }
+  if (total <= 0) return { none: true, considered, background, threshold };
+  const clipped = !p.legacy && edge;
+
+  let reject_reason = null;
+  if (clipped) reject_reason = "clipped";
+  else if (!p.legacy && !tracked && competing > p.max_competing_ratio) reject_reason = "ambiguous";
+
+  return {
+    x: sx / total, y: sy / total, bbox: best.bbox, area: best.area, peak: best.peak,
+    halo: best.halo, saturated_frac: best.saturated_frac, saturated: best.saturated_frac > p.max_saturated_frac,
+    background, threshold, clipped, candidates: candidates.length, competing, tracked,
+    usable: reject_reason === null, reject_reason, considered,
+  };
+}
+function linearDrift(ts, vs) {
+  const n = ts.length;
+  const tm = ts.reduce((a, v) => a + v, 0) / n, vm = vs.reduce((a, v) => a + v, 0) / n;
+  let stt = 0;
+  for (const t of ts) stt += (t - tm) * (t - tm);
+  if (n < 3 || stt <= 0) return [0, 0];
+  let s = 0;
+  for (let i = 0; i < n; i++) s += (ts[i] - tm) * (vs[i] - vm);
+  const slope = s / stt;
+  let resid = 0;
+  for (let i = 0; i < n; i++) resid += (vs[i] - vm - slope * (ts[i] - tm)) ** 2;
+  const se = Math.sqrt(resid / (n - 2) / stt);
+  const drift = slope * (Math.max(...ts) - Math.min(...ts));
+  if (se <= 1e-12) return [drift, slope ? Infinity : 0];
+  return [drift, Math.abs(slope) / se];
+}
+function stdev(v) {
+  if (v.length < 2) return 0;
+  const m = v.reduce((a, x) => a + x, 0) / v.length;
+  return Math.sqrt(v.reduce((a, x) => a + (x - m) * (x - m), 0) / (v.length - 1));
+}
+function averageSpot(samples, now, opts = {}) {
+  const o = { ...AVERAGING, ...opts };
+  let points = samples.filter(([t, s]) => s && now - t >= 0 && now - t <= o.window_sec + 1e-9)
+    .map(([t, s]) => ({ t, x: s[0], y: s[1], kept: true }));
+  const total = points.length;
+  let band = null;
+  if (total >= 3 && o.mad_k > 0) {
+    const mx = median(points.map((q) => q.x)), my = median(points.map((q) => q.y));
+    const sx = Math.max(o.mad_floor_px, 1.4826 * median(points.map((q) => Math.abs(q.x - mx))));
+    const sy = Math.max(o.mad_floor_px, 1.4826 * median(points.map((q) => Math.abs(q.y - my))));
+    band = { mx, my, hx: o.mad_k * sx, hy: o.mad_k * sy };
+    for (const q of points) q.kept = Math.abs(q.x - mx) <= band.hx && Math.abs(q.y - my) <= band.hy;
+  }
+  const kept = points.filter((q) => q.kept);
+  if (kept.length < Math.max(1, o.min_samples)) return { mean: null, points, band, total, rejected: total - kept.length, stable: false, reason: "samples" };
+  const xs = kept.map((q) => q.x), ys = kept.map((q) => q.y), ts = kept.map((q) => q.t);
+  const std = [stdev(xs), stdev(ys)];
+  const dx = linearDrift(ts, xs), dy = linearDrift(ts, ys);
+  const rejected = total - kept.length;
+  let reason = null;
+  if (o.max_outlier_fraction >= 0 && rejected > Math.max(1, Math.floor(o.max_outlier_fraction * total))) reason = "outliers";
+  else if (o.max_drift_px > 0 && ((Math.abs(dx[0]) > o.max_drift_px && dx[1] > o.drift_t) || (Math.abs(dy[0]) > o.max_drift_px && dy[1] > o.drift_t))) reason = "drift";
+  else if (o.max_std_px > 0 && Math.max(...std) > o.max_std_px) reason = "jitter";
+  return {
+    mean: [xs.reduce((a, v) => a + v, 0) / xs.length, ys.reduce((a, v) => a + v, 0) / ys.length],
+    std, drift: [dx[0], dy[0]], samples: kept.length, rejected, total, stable: reason === null, reason, points, band,
+  };
+}
+function fitGaussian(xs, vs, background, lo, hi) {
+  let n = 0;
+  const S = new Float64Array(7), T = new Float64Array(3);
+  const x0 = xs.reduce((a, v) => a + v, 0) / xs.length;
+  for (let i = 0; i < xs.length; i++) {
+    const e = vs[i] - background;
+    if (e <= lo || vs[i] >= hi) continue;
+    const x = xs[i] - x0, l = Math.log(e), wt = e * e;
+    n++;
+    for (let k = 0; k <= 4; k++) S[k] += wt * x ** k;
+    T[0] += wt * l; T[1] += wt * x * l; T[2] += wt * x * x * l;
+  }
+  if (n < 4) return null;
+  const A = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]];
+  const det = (m) => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const D = det(A);
+  if (!D) return null;
+  const col = (j) => A.map((row, i) => row.map((v, k) => (k === j ? T[i] : v)));
+  const [a, b, c] = [0, 1, 2].map((j) => det(col(j)) / D);
+  if (c >= 0) return null;
+  const sigma = Math.sqrt(-1 / (2 * c));
+  const mu = -b / (2 * c);
+  return { mu: mu + x0, sigma, peak: Math.exp(a - (b * b) / (4 * c)), used: n };
+}
+return { DETECTION, AVERAGING, BEFORE_20, BEFORE_25, paperFrame, addSpot, fillRect, toU8, detectSpot, averageSpot, fitGaussian };
+})();
+
+
+{
 const paper = document.querySelector("#lab-paper");
 if (paper) {
-  const panel = document.querySelector("#lab-panel");
-  const W = paper.width, H = paper.height;
-  const bg = { r: 170, g: 178, b: 172 };
-  const state = { x: 300, y: 210, sigma: 6, amp: 70, noise: 2, glare: false };
-  const base = document.createElement("canvas");
-  base.width = W; base.height = H;
-  const bctx = base.getContext("2d", { willReadFrequently: true });
-  const pctx = paper.getContext("2d", { willReadFrequently: true });
-  const gctx = panel.getContext("2d", { willReadFrequently: true });
+  const W = 640, H = 480, SCALE = 0.256557, TOL = 3;
+  const BG = [170, 178, 172];
+  const $ = (s) => document.querySelector(s);
+  const panel = $("#lab-panel"), prof = $("#lab-profile");
+  const pctx = paper.getContext("2d"), fctx = prof.getContext("2d"), hctx = panel.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const st = { x: 331.4, y: 233.2, sigma: 6, amp: 400, noise: 2, ref: [320, 240], prev: null, det: null };
+  let base = null, baseNoise = -1;
+  const css = (el, n) => getComputedStyle(el).getPropertyValue(n).trim();
 
-  const noiseCanvas = () => {
-    const img = bctx.createImageData(W, H);
-    const d = img.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const n = (Math.random() + Math.random() + Math.random() - 1.5) * 3.2 * state.noise;
-      d[i] = bg.r + n; d[i + 1] = bg.g + n; d[i + 2] = bg.b + n; d[i + 3] = 255;
-    }
-    bctx.putImageData(img, 0, 0);
+  const frame = () => {
+    if (baseNoise !== st.noise) { base = RS.paperFrame(W, H, 3, BG, st.noise); baseNoise = st.noise; }
+    const f = { w: W, h: H, ch: base.ch.map((a) => Float32Array.from(a)) };
+    RS.addSpot(f, st.x, st.y, st.sigma, [st.amp * 0.15, st.amp, st.amp * 0.225]);
+    return RS.toU8(f);
   };
-  noiseCanvas();
 
-  const paint = (ctx) => {
-    ctx.drawImage(base, 0, 0);
-    const rMax = Math.ceil(state.sigma * 4);
-    const img = ctx.getImageData(Math.max(0, state.x - rMax), Math.max(0, state.y - rMax),
-      Math.min(W, rMax * 2), Math.min(H, rMax * 2));
-    const d = img.data;
-    const ox = Math.max(0, state.x - rMax), oy = Math.max(0, state.y - rMax);
-    const gw = img.width;
-    for (let yy = 0; yy < img.height; yy++) {
-      for (let xx = 0; xx < img.width; xx++) {
-        const dx = ox + xx - state.x, dy = oy + yy - state.y;
-        const gauss = Math.exp(-(dx * dx + dy * dy) / (2 * state.sigma * state.sigma));
-        if (gauss < 0.004) continue;
-        const i = (yy * gw + xx) * 4;
-        d[i] = Math.min(255, d[i] + 0.16 * state.amp * gauss);
-        d[i + 1] = Math.min(255, d[i + 1] + state.amp * 5.7 * gauss);
-        d[i + 2] = Math.min(255, d[i + 2] + 0.23 * state.amp * gauss);
+  const drawFrame = (img, det) => {
+    const id = pctx.createImageData(W, H);
+    for (let i = 0, j = 0; i < W * H; i++, j += 4) { id.data[j] = img.r[i]; id.data[j + 1] = img.g[i]; id.data[j + 2] = img.b[i]; id.data[j + 3] = 255; }
+    pctx.putImageData(id, 0, 0);
+    if (!det || det.none) return;
+    // magnified core: 48 × 48 px around the centroid, ×3, in the corner away from the spot
+    const R = 24, Z = 3, S = R * 2 * Z;
+    const ix = det.x < W / 2 ? W - S - 14 : 14, iy = det.y < H / 2 ? H - S - 14 : 14;
+    const sx = Math.round(det.x) - R, sy = Math.round(det.y) - R;
+    pctx.imageSmoothingEnabled = false;
+    pctx.drawImage(paper, sx, sy, R * 2, R * 2, ix, iy, S, S);
+    pctx.strokeStyle = "rgba(255,255,255,.9)"; pctx.lineWidth = 2;
+    pctx.strokeRect(ix, iy, S, S);
+    pctx.strokeRect(sx, sy, R * 2, R * 2);
+    const cx = ix + (det.x - sx + 0.5) * Z, cy = iy + (det.y - sy + 0.5) * Z;
+    pctx.strokeStyle = det.usable ? "#111" : "#c0392b"; pctx.lineWidth = 1.5;
+    pctx.beginPath(); pctx.moveTo(cx - 12, cy); pctx.lineTo(cx + 12, cy); pctx.moveTo(cx, cy - 12); pctx.lineTo(cx, cy + 12); pctx.stroke();
+    pctx.fillStyle = "rgba(0,0,0,.6)"; pctx.fillRect(ix, iy + S - 30, S, 30);
+    pctx.fillStyle = "#fff"; pctx.font = "20px ui-monospace,monospace";
+    pctx.fillText("×3", ix + 8, iy + S - 9);
+  };
+
+  const drawProfile = (img, det) => {
+    const w = prof.width, h = prof.height, L = 10, Rm = 10, T = 14, B = 40;
+    fctx.clearRect(0, 0, w, h);
+    const ink = css(document.body, "--muted") || "#8f8f8f", rule = css(document.body, "--rule") || "#ebebeb";
+    const acc = css(document.body, "--accent") || "#2f8a57", text = css(document.body, "--text-2") || "#525252";
+    fctx.font = "25px ui-monospace,monospace";
+    if (!det || det.none) { fctx.fillStyle = ink; fctx.fillText("no candidate", L, h / 2); return null; }
+    const row = Math.round(det.y), half = 34, x0 = Math.round(det.x) - half;
+    const xs = [], vs = [];
+    for (let x = x0; x <= x0 + half * 2; x++) if (x >= 0 && x < W) { xs.push(x); vs.push(img.g[row * W + x]); }
+    const fit = RS.fitGaussian(xs, vs, det.background, det.threshold, 250);
+    const top = Math.max(270, fit ? Math.min(det.background + fit.peak, 900) + 15 : 0);
+    const lo = det.background - 20;
+    const X = (x) => L + ((x - x0) / (half * 2)) * (w - L - Rm);
+    const Y = (v) => T + (1 - (v - lo) / (top - lo)) * (h - T - B);
+    fctx.lineWidth = 1.5;
+    fctx.strokeStyle = rule;
+    fctx.beginPath(); fctx.moveTo(L, Y(det.background)); fctx.lineTo(w - Rm, Y(det.background)); fctx.stroke();
+    fctx.setLineDash([6, 6]);
+    fctx.beginPath(); fctx.moveTo(L, Y(250)); fctx.lineTo(w - Rm, Y(250)); fctx.stroke();
+    fctx.setLineDash([]);
+    fctx.fillStyle = ink;
+    fctx.textAlign = "right"; fctx.fillText("paper " + det.background.toFixed(0), w - Rm, Y(det.background) - 16); fctx.textAlign = "left";
+    fctx.fillText("saturation 250", L, Y(250) - 8);
+    if (fit) {
+      fctx.strokeStyle = acc; fctx.lineWidth = 3;
+      fctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const x = x0 + (i / 200) * half * 2;
+        const v = det.background + fit.peak * Math.exp(-((x - fit.mu) ** 2) / (2 * fit.sigma * fit.sigma));
+        i ? fctx.lineTo(X(x), Y(Math.min(v, top))) : fctx.moveTo(X(x), Y(v));
       }
+      fctx.stroke();
     }
-    ctx.putImageData(img, ox, oy);
-    if (state.glare) {
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(70, 60, 20, 20);
+    for (let i = 0; i < xs.length; i++) {
+      const sat = vs[i] >= 250;
+      fctx.beginPath(); fctx.arc(X(xs[i]), Y(vs[i]), 4.5, 0, Math.PI * 2);
+      if (sat) { fctx.strokeStyle = text; fctx.lineWidth = 1.5; fctx.stroke(); }
+      else { fctx.fillStyle = text; fctx.fill(); }
     }
+    fctx.strokeStyle = acc; fctx.lineWidth = 1.5; fctx.setLineDash([3, 5]);
+    fctx.beginPath(); fctx.moveTo(X(det.x), T); fctx.lineTo(X(det.x), h - B); fctx.stroke(); fctx.setLineDash([]);
+    fctx.fillStyle = ink;
+    fctx.fillText("x " + x0, L, h - 8);
+    fctx.textAlign = "right"; fctx.fillText("x " + (x0 + half * 2), w - Rm, h - 8);
+    fctx.textAlign = "center"; fctx.fillStyle = acc; fctx.fillText("centroid " + det.x.toFixed(2), X(det.x), h - 8);
+    fctx.textAlign = "left";
+    return fit;
   };
 
-  const detect = () => {
-    const img = pctx.getImageData(0, 0, W, H).data;
-    let sx = 0, sy = 0, sw = 0, halo = 0, sat = 0, area = 0;
-    for (let y = 2; y < H - 2; y++) {
-      for (let x = 2; x < W - 2; x++) {
-        const i = (y * W + x) * 4;
-        const r = img[i], g = img[i + 1], b = img[i + 2];
-        const excess = g - (r + b) / 2;
-        if (excess <= 8 || g <= bg.g + 14) continue;
-        area++;
-        const isSat = g >= 250;
-        if (isSat) sat++; else halo++;
-        const w = Math.max(1, g - bg.g);
-        sx += x * w; sy += y * w; sw += w;
-      }
+  // ---- target view: same drawing as VerticalityPanel.tsx, labels translated ----
+  let cssW = 1, cssH = 1, viewMm = 10, hudFrame = 0, anim = 0, visible = true;
+  const resize = () => {
+    const r = panel.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    cssW = Math.max(1, r.width); cssH = Math.max(1, r.height);
+    const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
+    if (panel.width !== pw || panel.height !== ph) { panel.width = pw; panel.height = ph; }
+    hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  const colors = () => ({
+    bg: css(panel, "--hud-bg"), grid: css(panel, "--hud-grid"), ring: css(panel, "--hud-ring"), label: css(panel, "--hud-label"),
+    ref: css(panel, "--hud-ref"), spot: css(panel, "--hud-spot"), line: css(panel, "--a-accent"), alert: css(panel, "--a-bad"),
+  });
+  let col = null;
+  const hud = () => {
+    const w = cssW, h = cssH, ctx = hctx;
+    hudFrame++;
+    if (!col || hudFrame % 30 === 0) col = colors();
+    ctx.clearRect(0, 0, w, h); ctx.fillStyle = col.bg; ctx.fillRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2;
+    ctx.strokeStyle = col.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = cx % 24; x < w; x += 24) { ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, h); }
+    for (let y = cy % 24; y < h; y += 24) { ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(w, Math.round(y) + 0.5); }
+    ctx.stroke();
+    const d = st.det, spot = d && !d.none ? [d.x, d.y] : null, ref = st.ref;
+    const center = ref ?? spot ?? [W / 2, H / 2];
+    let target = TOL * 2.2;
+    if (ref && spot) target = Math.max(target, Math.hypot(spot[0] - ref[0], spot[1] - ref[1]) * SCALE * 1.4);
+    else if (!ref) target = Math.max(target, 30);
+    viewMm += (target - viewMm) * (hudFrame === 1 || reduce ? 1 : 0.15);
+    const k = ((Math.min(w, h) / 2) * 0.92) / viewMm;
+    const mx = (px) => cx + (px - center[0]) * SCALE * k, my = (py) => cy + (py - center[1]) * SCALE * k;
+    ctx.font = '10px ui-monospace, "Cascadia Mono", Consolas, monospace';
+    ctx.lineJoin = "round";
+    const text = (s, x, y, c) => { ctx.lineWidth = 3; ctx.strokeStyle = col.bg; ctx.strokeText(s, x, y); ctx.fillStyle = c; ctx.fillText(s, x, y); };
+    const marks = [spot && [mx(spot[0]), my(spot[1])], ref && [mx(ref[0]), my(ref[1])]].filter(Boolean);
+    const step = [0.5, 1, 2, 5, 10, 20, 50].find((s) => viewMm / s <= 4) ?? 50;
+    const rings = [];
+    for (let rmm = step; rmm <= viewMm * 1.25; rmm += step) {
+      const rp = rmm * k;
+      ctx.beginPath(); ctx.arc(cx, cy, rp, 0, Math.PI * 2);
+      ctx.strokeStyle = col.ring; ctx.lineWidth = 1; ctx.setLineDash([2, 4]); ctx.stroke(); ctx.setLineDash([]);
+      // label on the ring's free side: top-left when the spot sits top-right, and so on
+      const sx = marks[0] && marks[0][0] > cx ? -1 : 1, sy = marks[0] && marks[0][1] < cy ? 1 : -1;
+      const lx = cx + sx * rp * 0.707 + (sx > 0 ? 4 : -4), ly = cy + sy * rp * 0.707 + (sy > 0 ? 12 : -4);
+      if (!marks.some(([px, py]) => Math.abs(px - lx) < 34 && Math.abs(py - ly) < 16)) rings.push([rmm + " mm", lx, ly, sx]);
     }
-    if (!area) return { ok: false, why: "no green candidate", halo: 0, sat: 0 };
-    const cx = sx / sw, cy = sy / sw;
-    const clipped = cx < 10 || cy < 10 || cx > W - 10 || cy > H - 10;
-    const satFrac = sat / area;
-    if (clipped) return { ok: false, why: "candidate touches the frame edge", halo, sat: satFrac, cx, cy };
-    if (halo < 25) return { ok: false, why: "no unsaturated green halo", halo, sat: satFrac, cx, cy };
-    return { ok: true, why: typeof satFrac === "number" && satFrac > 0.6 ? "accepted, overexposed but usable" : "candidate accepted", halo, sat: satFrac, cx, cy };
+    ctx.strokeStyle = col.ring;
+    ctx.beginPath(); ctx.moveTo(cx - 12, cy); ctx.lineTo(cx + 12, cy); ctx.moveTo(cx, cy - 12); ctx.lineTo(cx, cy + 12); ctx.stroke();
+    const over = ref && spot && (Math.abs(spot[0] - ref[0]) * SCALE > TOL || Math.abs(spot[1] - ref[1]) * SCALE > TOL);
+    if (ref) {
+      const rx = mx(ref[0]), ry = my(ref[1]), t = TOL * k;
+      ctx.globalAlpha = 0.12; ctx.fillStyle = col.ref; ctx.fillRect(rx - t, ry - t, t * 2, t * 2); ctx.globalAlpha = 1;
+      ctx.strokeStyle = col.ref; ctx.setLineDash([4, 4]); ctx.strokeRect(rx - t, ry - t, t * 2, t * 2); ctx.setLineDash([]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(rx, ry, 6, 0, Math.PI * 2); ctx.moveTo(rx - 10, ry); ctx.lineTo(rx + 10, ry); ctx.moveTo(rx, ry - 10); ctx.lineTo(rx, ry + 10); ctx.stroke();
+      ctx.textAlign = "left"; text("Ref", rx + 10, ry + 14, col.ref);
+    }
+    if (spot) {
+      const sx = mx(spot[0]), sy = my(spot[1]);
+      if (ref) { ctx.strokeStyle = over ? col.alert : col.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(mx(ref[0]), my(ref[1])); ctx.lineTo(sx, sy); ctx.stroke(); }
+      const pulse = reduce ? 0.35 : (Date.now() % 1600) / 1600;
+      ctx.globalAlpha = 0.7 * (1 - pulse); ctx.strokeStyle = col.spot; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(sx, sy, 6 + pulse * 12, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(sx, sy, 4.5, 0, Math.PI * 2); ctx.fillStyle = col.spot; ctx.fill();
+      text("Spot", sx + 10, sy - 7, col.spot);
+    }
+    for (const [s, x, y, side] of rings) { ctx.textAlign = side > 0 ? "left" : "right"; text(s, x, y, col.label); }
+    ctx.textAlign = "left";
+    if (visible && !reduce) anim = requestAnimationFrame(hud);
+  };
+  const kick = () => { cancelAnimationFrame(anim); hud(); };
+
+  const signed = (v) => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const REJECT = { clipped: "Spot clipped by the edge", ambiguous: "Several candidate spots" };
+  const ui = () => {
+    const fit = st.fit;
+    const d = st.det, spot = d && !d.none ? d : null, ref = st.ref;
+    const badges = [[spot ? "ok" : "warn", spot ? "Spot locked" : "No spot"], [ref ? "info" : "", ref ? "Reference set" : "No reference"]];
+    if (spot && spot.saturated) badges.push(["bad", "Over-exposed"]);
+    if (spot && !spot.usable) badges.push(["bad", REJECT[spot.reject_reason] || "Spot unusable"]);
+    $("#lab-badges").innerHTML = badges.map(([t, s]) => '<span class="badge ' + t + '">' + s + "</span>").join("");
+    $("#lab-empty").hidden = !!spot;
+    const dx = spot && ref ? (spot.x - ref[0]) * SCALE : null, dy = spot && ref ? (spot.y - ref[1]) * SCALE : null;
+    const dist = $("#lab-dist");
+    dist.hidden = dx == null;
+    if (dx != null) { dist.textContent = "Offset " + Math.hypot(dx, dy).toFixed(2) + " mm"; dist.classList.toggle("alert", Math.abs(dx) > TOL || Math.abs(dy) > TOL); }
+    for (const [id, tid, v] of [["#lab-dx", "#lab-tx", dx], ["#lab-dy", "#lab-ty", dy]]) {
+      $(id).innerHTML = v == null ? "—" : signed(v) + "<small>mm</small>";
+      $(tid).className = "tile" + (v == null ? "" : Math.abs(v) > TOL ? " alert" : " ok");
+    }
+    $("#lab-set").disabled = !(spot && spot.usable);
+    $("#lab-clear").disabled = !ref;
+    const rows = spot
+      ? [["Centroid", spot.x.toFixed(1) + ", " + spot.y.toFixed(1)], ["Error", Math.hypot(spot.x - st.x, spot.y - st.y).toFixed(3) + " px"],
+         ["Fit σ", fit ? fit.sigma.toFixed(2) + " px" : "—"], ["Saturated", Math.round(spot.saturated_frac * 100) + "%"], ["Halo", spot.halo + " px"]]
+      : [["Spot", "none"]];
+    $("#lab-read").innerHTML = rows.map(([k, v]) => "<dt>" + k + "</dt><dd>" + v + "</dd>").join("");
   };
 
-  const overlay = (ctx, det) => {
-    ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.55)";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
-    if (det.cx) {
-      ctx.strokeStyle = det.ok ? "#39c07a" : "#e0a53a";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(det.cx, det.cy, 14, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(det.cx - 20, det.cy); ctx.lineTo(det.cx + 20, det.cy);
-      ctx.moveTo(det.cx, det.cy - 20); ctx.lineTo(det.cx, det.cy + 20); ctx.stroke();
-    }
-    ctx.fillStyle = "rgba(0,0,0,.55)";
-    ctx.fillRect(8, H - 26, 150, 18);
-    ctx.fillStyle = "#fff";
-    ctx.font = "11px ui-monospace, monospace";
-    ctx.fillText("520 × 390 · frame " + (det.ok ? "usable" : "rejected"), 14, H - 13);
-    ctx.restore();
+  const paint = () => {
+    const img = frame();
+    const det = RS.detectSpot(img, st.prev);
+    st.det = det;
+    st.prev = det && !det.none ? [det.x, det.y] : null;
+    drawFrame(img, det);
+    st.fit = drawProfile(img, det);
+    ui();
+    kick();
   };
-
+  let queued = false;
   const render = () => {
-    paint(pctx);
-    const det = detect();
-    paint(gctx);
-    overlay(gctx, det);
-    document.querySelector("#lab-xy").textContent = det.cx ? det.cx.toFixed(1) + ", " + det.cy.toFixed(1) + " px" : "—";
-    document.querySelector("#lab-sat").textContent = det.cx ? Math.round(det.sat * 100) + "%" : "—";
-    document.querySelector("#lab-halo").textContent = det.cx ? det.halo + " px" : "—";
-    const chip = document.querySelector("#lab-chip");
-    chip.textContent = det.ok ? "ok" : "reject";
-    chip.className = det.ok ? "ok" : "no";
-    document.querySelector("#lab-why").textContent = det.why;
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; paint(); });
   };
 
   const move = (ev) => {
     const r = paper.getBoundingClientRect();
-    state.x = Math.max(12, Math.min(W - 12, (ev.clientX - r.left) * (W / r.width)));
-    state.y = Math.max(12, Math.min(H - 12, (ev.clientY - r.top) * (H / r.height)));
+    st.x = Math.max(0, Math.min(W - 1, ((ev.clientX - r.left) * W) / r.width));
+    st.y = Math.max(0, Math.min(H - 1, ((ev.clientY - r.top) * H) / r.height));
     render();
   };
   let down = false;
@@ -874,155 +1228,321 @@ if (paper) {
   paper.addEventListener("pointermove", (ev) => { if (down) move(ev); });
   paper.addEventListener("pointerup", () => { down = false; });
   paper.addEventListener("pointercancel", () => { down = false; });
+  const setRef = () => { if (st.det && !st.det.none && st.det.usable) { st.ref = [st.det.x, st.det.y]; ui(); kick(); } };
+  const clearRef = () => { st.ref = null; ui(); kick(); };
   paper.addEventListener("keydown", (ev) => {
-    const step = ev.shiftKey ? 10 : 2;
-    const dx = ev.key === "ArrowLeft" ? -step : ev.key === "ArrowRight" ? step : 0;
-    const dy = ev.key === "ArrowUp" ? -step : ev.key === "ArrowDown" ? step : 0;
+    const k = ev.key.toLowerCase();
+    if (k === "s") { setRef(); return; }
+    if (k === "r") { clearRef(); return; }
+    const s = ev.shiftKey ? 10 : 1;
+    const dx = ev.key === "ArrowLeft" ? -s : ev.key === "ArrowRight" ? s : 0;
+    const dy = ev.key === "ArrowUp" ? -s : ev.key === "ArrowDown" ? s : 0;
     if (!dx && !dy) return;
     ev.preventDefault();
-    state.x = Math.max(12, Math.min(W - 12, state.x + dx));
-    state.y = Math.max(12, Math.min(H - 12, state.y + dy));
+    st.x = Math.max(0, Math.min(W - 1, st.x + dx));
+    st.y = Math.max(0, Math.min(H - 1, st.y + dy));
     render();
   });
-
-  const bind = (id, key, out, fmt) => {
-    const el = document.querySelector(id), o = document.querySelector(out);
-    el.addEventListener("input", () => { state[key] = +el.value; o.textContent = fmt(state[key]); if (key === "noise") noiseCanvas(); render(); });
+  $("#lab-set").addEventListener("click", setRef);
+  $("#lab-clear").addEventListener("click", clearRef);
+  const bind = (id, key, fmt) => {
+    const el = $(id), out = $(id + "-v");
+    el.addEventListener("input", () => { st[key] = +el.value; out.textContent = fmt(st[key]); render(); });
   };
-  bind("#lab-sigma", "sigma", "#lab-sigma-v", (v) => v.toFixed(1));
-  bind("#lab-amp", "amp", "#lab-amp-v", (v) => String(v));
-  bind("#lab-noise", "noise", "#lab-noise-v", (v) => v.toFixed(1));
-  document.querySelector("#lab-glare").addEventListener("change", (ev) => { state.glare = ev.target.checked; render(); });
+  bind("#lab-sigma", "sigma", (v) => v.toFixed(1));
+  bind("#lab-amp", "amp", (v) => String(v));
+  bind("#lab-noise", "noise", (v) => v.toFixed(1));
 
-  state.x = 300; state.y = 210;
-  render();
+  if ("ResizeObserver" in window) new ResizeObserver(() => { resize(); kick(); }).observe(panel);
+  if ("IntersectionObserver" in window) new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); else cancelAnimationFrame(anim); }).observe(panel);
+  resize();
+  paint();
+  // layout can still move after the script runs (web fonts, images): size the target view again
+  const settle = () => { resize(); kick(); };
+  addEventListener("load", settle);
+  if (document.fonts) document.fonts.ready.then(settle);
+}
 }
 
 
-const CASES = {
-  ideal: {
-    label: "Ideal spot",
-    offsets: [0.04, -0.03, 0.02, -0.05, 0.01, 0.06, -0.02, 0.03, -0.01, 0.02, -0.04, 0.05, -0.03, 0.01, 0.0],
-    truth: 0,
-    before: {
-      verdict: "Accepted", reason: "no gate needed", mean: "+0.01 px", rejected: 0,
-      gates: [["pass","Halo","green halo present"],["pass","Track","first frame"],["pass","Clip","fully inside"],["pass","Drift","no trend"]]
-    },
-    after: {
-      verdict: "Accepted", reason: "15 of 15 frames used; spread and drift inside the limits", mean: "+0.01 px", rejected: 0,
-      gates: [["pass","Halo","green halo present"],["pass","Track","first frame"],["pass","Clip","fully inside"],["pass","Drift","no trend"],["pass","Outlier","0 of 15 rejected"]]
-    },
-    note: "Synthetic σ = 6 px spot. This is the case that always worked: 0.046 px RMS unsaturated, 0.016 px saturated over 20 frames."
-  },
-  reflection: {
-    label: "White reflection",
-    offsets: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    truth: null,
-    before: {
-      verdict: "Accepted (wrong)", reason: "saturation skipped the green test; returned (309.5, 209.5)", mean: "(309.5, 209.5)", rejected: 0,
-      gates: [["na","Halo","not checked before the fix"],["na","Track","no context"],["pass","Clip","inside the frame"]]
-    },
-    after: {
-      verdict: "Rejected", reason: "no unsaturated green halo; the candidate is a saturated white block", mean: "—", rejected: 15,
-      gates: [["fail","Halo","0 halo px, 100% saturated"],["na","Track","no candidate near the last position"],["pass","Clip","inside the frame"],["fail","Outlier","never enters the window"]]
-    },
-    note: "A 20×20 px pure-white block. The old detector accepted it at (309.5, 209.5) with 100% saturation."
-  },
-  edge: {
-    label: "Frame edge",
-    offsets: [1.92,1.9,1.94,1.91,1.93,1.92,1.9,1.95,1.92,1.91,1.93,1.92,1.9,1.94,1.92],
-    truth: 0,
-    before: {
-      verdict: "Accepted (wrong)", reason: "centroid pulled inward by the missing edge pixels", mean: "+1.92 px", rejected: 0,
-      gates: [["pass","Halo","halo exists"],["pass","Track","stable"],["na","Clip","not checked before the fix"]]
-    },
-    after: {
-      verdict: "Rejected", reason: "the candidate touches the frame edge, so it is marked clipped", mean: "—", rejected: 15,
-      gates: [["pass","Halo","halo exists but is cut"],["pass","Track","stable"],["fail","Clip","touches x = 0"],["fail","Outlier","frame marked unusable"]]
-    },
-    note: "True centre x = 2 px; the intensity centroid reports x = 3.9208 px. At x = 5 px the bias is 0.74 px."
-  },
-  moving: {
-    label: "Moving window",
-    offsets: [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7],
-    truth: 0,
-    before: {
-      verdict: "Accepted (wrong)", reason: "MAD removes no frames; the mean lags the newest position", mean: "107 px, newest 114 px", rejected: 0,
-      gates: [["pass","Halo","clean spot"],["pass","Track","continuously tracked"],["pass","Clip","inside the frame"],["na","Drift","not checked before the fix"]]
-    },
-    after: {
-      verdict: "Rejected", reason: "linear drift of 14 px in 0.42 s exceeds the 2 px limit", mean: "—", rejected: 15,
-      gates: [["pass","Halo","clean spot"],["pass","Track","continuously tracked"],["pass","Clip","inside the frame"],["fail","Drift","14 px > 2 px"],["pass","Outlier","0 frames rejected"]]
-    },
-    note: "15 frames from x = 100 to x = 114: mean 107, 7 px behind the newest frame (≈1.80 mm at the default scale)."
-  },
-  vibration: {
-    label: "10 Hz vibration",
-    offsets: [4,4,4,4,4,-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],
-    truth: 0,
-    before: {
-      verdict: "Accepted (wrong)", reason: "MAD cuts the five peaks; survivors have zero variance, so the old code called it stable", mean: "318 px, dx = −0.513 mm", rejected: 5,
-      gates: [["pass","Halo","clean spot"],["pass","Track","same position"],["pass","Clip","inside the frame"],["pass","Drift","filtered slope is zero"],["na","Outlier","no rejection cap"]]
-    },
-    after: {
-      verdict: "Rejected", reason: "5 of 15 frames rejected on one side; 33% exceeds the 15% cap", mean: "318 px, dx = −0.513 mm", rejected: 5,
-      gates: [["pass","Halo","clean spot"],["pass","Track","same position"],["pass","Clip","inside the frame"],["pass","Drift","filtered slope is zero"],["fail","Outlier","33% > 15% cap"]]
-    },
-    note: "10 Hz at 30 fps lands on three phases: five frames at +4 px, ten at −2 px. The cap is the fix that exists; the raw-spread pre-check and one-sided test remain recommendations."
-  }
-};
-
+{
 const qg = document.querySelector("#qg");
 if (qg) {
-  const plot = qg.querySelector("#qg-plot");
-  const chip = qg.querySelector("#qg-chip");
-  const verdict = qg.querySelector("#qg-verdict");
-  const nums = qg.querySelector("#qg-nums");
-  const gates = qg.querySelector("#qg-gates");
-  const fix = qg.querySelector("#qg-fix");
-  let cur = "ideal";
-
-  const raw = (offsets) => {
-    const n = offsets.length;
-    const mean = offsets.reduce((a, b) => a + b, 0) / n;
-    const sd = Math.sqrt(offsets.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(1, n - 1));
-    return { mean, sd };
+  const SCALE = 0.256557;
+  const NO_SPOT = "Usable green spot not detected in at least 5 frames within 0.5s (camera stale, spot lost, clipped by the frame edge or ambiguous), cannot record!";
+  const frameCase = (o) => ({ kind: "frame", ...o });
+  const CASES = {
+    reflection: frameCase({
+      label: "20 × 20 px white block, no laser", view: [230, 173, 160, 75], prev: null, truth: null,
+      build: () => RS.fillRect(RS.paperFrame(640, 480, 0, [170, 178, 172], 0), 300, 200, 320, 220),
+      story: "A 20 × 20 px fully saturated white block, with no laser in the frame. The old detector skipped the colour test for saturated candidates and returned it as the spot.",
+      issue: "#20", fix: "A candidate needs at least min_halo_px = 8 unsaturated green pixels. A saturated white block has none, so it never becomes a candidate.",
+    }),
+    track: frameCase({
+      label: "spot at (150, 150), white block at (479.5, 329.5)", view: [0, 90, 640, 300], prev: [250, 250], truth: [150, 150],
+      build: () => RS.fillRect(RS.addSpot(RS.paperFrame(640, 480, 2), 150, 150, 6, [5, 60, 10]), 470, 320, 490, 340),
+      story: "Tracking was lost (last position 250, 250). A white reflection carried more energy than the real, unsaturated spot, so the old detector jumped to it.",
+      issue: "#20", fix: "The halo gate removes the white block; tracking prefers a candidate within track_gate_px = 40 px of the last spot; with no tracking context, two near-equal candidates are ambiguous.",
+    }),
+    edge: frameCase({
+      label: "true centre x = 2 px", view: [0, 210, 128, 60], prev: null, truth: [2, 240],
+      build: () => RS.addSpot(RS.paperFrame(640, 480, 0), 2, 240, 6, [5, 60, 10]),
+      story: "Half the spot lies outside the frame. The intensity centroid of what remains moves inward: x = 3.92 px in the issue, 0.74 px bias at x = 5.",
+      issue: "#20", fix: "Any weighted pixel touching the frame or ROI edge marks the spot clipped. It still shows in the target view but is excluded from averaging.",
+    }),
+    halo: frameCase({
+      label: "spot at 320 + half-strength halo at 328", view: [288, 225, 64, 30], prev: null, truth: [320, 240],
+      build: () => RS.addSpot(RS.addSpot(RS.paperFrame(640, 480, 7), 320, 240, 6, [5, 60, 10]), 328, 240, 6, [2, 30, 5]),
+      story: "A half-strength halo 8 px to the right merges with the spot. In one frame the blend looks like a single, slightly wide spot, and the centroid moves 2.4 px.",
+      issue: "#20", fix: "Not fixed. max_elongation exists but is off by default, because a real laser spot can be elliptical. The bias is repeatable and averaging cannot remove it; it is documented under Limits.",
+    }),
+    moving: {
+      kind: "window", label: "15 frames, x from 100 to 114 in 0.42 s", truth: 114, now: 100.42, range: [97, 117],
+      samples: () => Array.from({ length: 15 }, (_, i) => [100 + i * 0.03, [100 + i, 200]]),
+      story: "The cart was still moving. Every frame is a clean spot and none is an outlier, so the old window averaged them: mean 107, 7 px (1.80 mm) behind the newest position.",
+      issue: "#20", fix: "A least-squares slope across the window; drift above average_max_drift_px = 2 px with a significant slope, or std above 2.5 px, rejects the window.",
+    },
+    vibration: {
+      kind: "window", label: "10 Hz at 30 fps: 5 frames at 324, 10 at 318", truth: 320, now: 100 + 14 / 30, range: [315, 327],
+      samples: () => Array.from({ length: 15 }, (_, i) => [100 + i / 30, [i % 3 === 0 ? 324 : 318, 240]]),
+      story: "Vibration aliased with the frame rate. Ten frames sat on the median, so MAD was zero and the 0.1 px floor cut the five peaks. The survivors had zero spread and passed the stillness check: dx = −0.513 mm, std 0.0000.",
+      issue: "#25", fix: "The MAD floor is now 0.5 px and at most 15% of the window may be rejected. Here 5 of 15 (33%) are, so the window is refused as vibrating.",
+    },
   };
 
-  const draw = () => {
+  const view = qg.querySelector("#qg-view"), vctx = view.getContext("2d");
+  const off = document.createElement("canvas"); off.width = 640; off.height = 480;
+  const octx = off.getContext("2d");
+  const pipe = qg.querySelector("#qg-pipe");
+  let picked = -1;
+  const $ = (s) => qg.querySelector(s);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const css = (n, f) => getComputedStyle(document.body).getPropertyValue(n).trim() || f;
+  const fmt = (v, d = 2) => (v >= 0 ? "+" : "") + v.toFixed(d);
+  const cache = {};
+  let cur = "reflection", mode = "before", timer = 0;
+
+  const run = (key) => {
+    if (cache[key]) return cache[key];
+    const c = CASES[key];
+    const out = {};
+    if (c.kind === "frame") {
+      const img = RS.toU8(c.build());
+      out.img = img;
+      out.before = RS.detectSpot(img, c.prev, RS.BEFORE_20.detect);
+      out.after = RS.detectSpot(img, c.prev);
+    } else {
+      const s = c.samples();
+      out.before = RS.averageSpot(s, c.now, (key === "vibration" ? RS.BEFORE_25 : RS.BEFORE_20).average);
+      out.after = RS.averageSpot(s, c.now);
+    }
+    return (cache[key] = out);
+  };
+
+  // stage rows: [mark class, name, rule, outcome, tag]
+  const stagesFor = (key, m) => {
+    const c = CASES[key], r = run(key), d = r[m], before = m === "before";
+    const tag20 = before ? "added in #20" : "#20", tag25 = before ? "added in #25" : "#25";
+    const rows = [];
+    if (c.kind === "frame") {
+      const comps = d ? d.considered.length : 0;
+      rows.push(["pass", "Bright region", "green > paper + max(25, 6σ)", comps + " component" + (comps === 1 ? "" : "s")]);
+      const block = d && d.considered.find((q) => q.why === "halo");
+      if (before) rows.push(["absent", "Halo and colour", "≥ 8 unsaturated green px", "saturated candidates skipped the colour test", tag20]);
+      else rows.push([block ? "stop" : "pass", "Halo and colour", "≥ 8 unsaturated green px", block ? "white block: 0 halo px → dropped" : "halo " + (d && !d.none ? d.halo : 0) + " px", "#20"]);
+      if (d && d.none) {
+        rows.push(["skip", "Tracking", "within 40 px of the last spot", "no candidate left"]);
+        rows.push(["skip", "Frame edge", "weighted pixels off the edge", "—"]);
+      } else {
+        if (before) rows.push(["absent", "Tracking", "within 40 px of the last spot", "strongest candidate wins", tag20]);
+        else rows.push(["pass", "Tracking", "within 40 px of the last spot", c.prev ? (d.tracked ? "tracked" : "nothing within 40 px of (" + c.prev.join(", ") + "); " + d.candidates + " candidate" + (d.candidates === 1 ? "" : "s") + ", not ambiguous") : "no previous position", "#20"]);
+        if (before) rows.push(["absent", "Frame edge", "weighted pixels off the edge", "not checked", tag20]);
+        else rows.push([d.clipped ? "stop" : "pass", "Frame edge", "weighted pixels off the edge", d.clipped ? "touches x = 0 → clipped, not usable" : "inside the frame", "#20"]);
+      }
+      const usable = d && !d.none && d.usable;
+      const w = usable ? "pass" : "skip";
+      rows.push([w, "Window outliers", "median ± 3.5·MAD", usable ? "15 identical frames" : "frames never enter the window"]);
+      rows.push([before ? "absent" : w, "Rejection cap", "≤ 15% of the window", before ? "no cap" : usable ? "0 of 15" : "—", tag25]);
+      rows.push([before ? "absent" : w, "Stillness", "drift ≤ 2 px, std ≤ 2.5 px", before ? "not checked" : usable ? "still" : "—", tag20]);
+    } else {
+      rows.push(["pass", "Bright region", "green > paper + max(25, 6σ)", "one clean spot per frame"]);
+      rows.push([before && key === "moving" ? "absent" : "pass", "Halo and colour", "≥ 8 unsaturated green px", "halo present", tag20]);
+      rows.push([before && key === "moving" ? "absent" : "pass", "Tracking", "within 40 px of the last spot", "tracked every frame", tag20]);
+      rows.push([before && key === "moving" ? "absent" : "pass", "Frame edge", "weighted pixels off the edge", "inside the frame", tag20]);
+      const floor = before ? 0.1 : 0.5;
+      rows.push(["pass", "Window outliers", "median ± 3.5·max(MAD, " + floor + " px)", d.rejected + " of " + d.total + " outside " + d.band.mx.toFixed(1) + " ± " + d.band.hx.toFixed(2) + " px"]);
+      if (before) rows.push(["absent", "Rejection cap", "≤ 15% of the window", "no cap: " + d.rejected + " dropped silently", tag25]);
+      else rows.push([d.reason === "outliers" ? "stop" : "pass", "Rejection cap", "≤ 15% of the window", d.rejected + " of " + d.total + " = " + Math.round((100 * d.rejected) / d.total) + "%" + (d.reason === "outliers" ? " > 15% → vibrating" : ""), "#25"]);
+      const stillMsg = "drift " + d.drift[0].toFixed(2) + " px · std " + d.std[0].toFixed(2) + " px";
+      if (before && key === "moving") rows.push(["absent", "Stillness", "drift ≤ 2 px, std ≤ 2.5 px", "not checked", tag20]);
+      else if (d.reason === "outliers") rows.push(["skip", "Stillness", "drift ≤ 2 px, std ≤ 2.5 px", "not reached"]);
+      else rows.push([d.reason === "drift" || d.reason === "jitter" ? "stop" : "pass", "Stillness", "drift ≤ 2 px, std ≤ 2.5 px", stillMsg + (d.reason ? " → " + d.reason : ""), "#20"]);
+    }
+    return rows;
+  };
+
+  const verdictFor = (key, m) => {
+    const c = CASES[key], d = run(key)[m];
+    if (c.kind === "frame") {
+      if (!d || d.none) return ["ok", "Rejected", "no candidate survives, so there is no spot to measure", [["", "No spot"]], NO_SPOT];
+      const err = c.truth ? Math.hypot(d.x - c.truth[0], d.y - c.truth[1]) : null;
+      const pos = "(" + d.x.toFixed(2) + ", " + d.y.toFixed(2) + ")";
+      if (!d.usable) return ["ok", "Rejected", pos + " shown but excluded from averaging", [["bad", "Spot clipped by the edge"]], NO_SPOT];
+      if (c.truth === null) return ["no", "Accepted, wrong", pos + " reported, but the frame has no laser at all", [["ok", "Spot locked"]], "Measurement recorded."];
+      if (err > 1) return [key === "halo" ? "warn" : "no", key === "halo" ? "Accepted, biased" : "Accepted, wrong", pos + " · " + err.toFixed(2) + " px (" + (err * SCALE).toFixed(2) + " mm) from the true centre", [["ok", "Spot locked"]], key === "halo" ? "Measurement recorded with a fixed bias; see Limits." : "Measurement recorded."];
+      return ["ok", "Accepted", pos + " · " + err.toFixed(2) + " px from the true centre", [["ok", "Spot locked"]], "Ready to record."];
+    }
+    const mean = d.mean ? d.mean[0] : null;
+    const bias = mean - c.truth;
+    if (d.stable) return ["no", "Accepted, wrong", "mean x = " + mean.toFixed(2) + " px · " + fmt(bias) + " px (" + fmt(bias * SCALE, 3) + " mm) from " + (key === "moving" ? "the newest position" : "the true centre") + ", std " + d.std[0].toFixed(2) + " px", [["ok", "Spot locked"]], "Measurement recorded."];
+    const msg = d.reason === "outliers"
+      ? "Green spot is vibrating (" + d.rejected + "/" + d.total + " frames rejected as outliers within 0.5s, the average would be biased); wait for the vibration to settle, cannot record!"
+      : "Green spot is not still (" + d.reason + ": std=(" + d.std[0].toFixed(2) + ", " + d.std[1].toFixed(2) + ") px, drift=(" + d.drift[0].toFixed(2) + ", " + d.drift[1].toFixed(2) + ") px within 0.5s); wait for the target to settle, cannot record!";
+    return ["ok", "Rejected", "the window is refused: " + d.reason, [["ok", "Spot locked"]], msg];
+  };
+
+  const drawFrame = (key, m) => {
+    const c = CASES[key], r = run(key), d = r[m];
+    const img = r.img, id = octx.createImageData(640, 480);
+    for (let i = 0, j = 0; i < 640 * 480; i++, j += 4) { id.data[j] = img.r[i]; id.data[j + 1] = img.g[i]; id.data[j + 2] = img.b[i]; id.data[j + 3] = 255; }
+    octx.putImageData(id, 0, 0);
+    const [vx, vy, vw, vh] = c.view, W = view.width, H = view.height, k = W / vw;
+    vctx.imageSmoothingEnabled = vw < 300 ? false : true;
+    vctx.drawImage(off, vx, vy, vw, vh, 0, 0, W, H);
+    const X = (x) => (x - vx + 0.5) * k, Y = (y) => (y - vy + 0.5) * k;
+    vctx.font = "20px ui-monospace,monospace";
+    vctx.lineWidth = 1.5;
+    if (d) for (const q of d.considered) {
+      const [bx, by, bw, bh] = q.bbox;
+      vctx.setLineDash(q.why ? [4, 4] : []);
+      vctx.strokeStyle = q.why ? "rgba(192,57,43,.9)" : "rgba(17,17,17,.55)";
+      vctx.strokeRect(X(bx - 0.5) - 3, Y(by - 0.5) - 3, bw * k + 6, bh * k + 6);
+      if (q.why) { vctx.fillStyle = "rgba(192,57,43,.95)"; vctx.fillText("no halo", X(bx - 0.5) - 3, Y(by - 0.5) - 8); }
+    }
+    vctx.setLineDash([]);
+    if (c.truth) {
+      vctx.strokeStyle = "rgba(255,255,255,.95)"; vctx.lineWidth = 1.5;
+      vctx.setLineDash([3, 3]); vctx.beginPath(); vctx.arc(X(c.truth[0]), Y(c.truth[1]), Math.max(14, 6 * k), 0, Math.PI * 2); vctx.stroke(); vctx.setLineDash([]);
+    }
+    if (d && !d.none) {
+      const bad = verdictFor(key, m)[0] !== "ok";
+      const px = X(d.x), py = Y(d.y), s = 18;
+      vctx.strokeStyle = bad ? "#c0392b" : d.usable ? "#1f6f45" : "#b7791f"; vctx.lineWidth = 2.5;
+      vctx.beginPath(); vctx.moveTo(px - s, py); vctx.lineTo(px + s, py); vctx.moveTo(px, py - s); vctx.lineTo(px, py + s); vctx.stroke();
+    }
+    vctx.fillStyle = "rgba(0,0,0,.5)"; vctx.fillRect(0, H - 34, W, 34);
+    vctx.fillStyle = "#fff";
+    vctx.fillText((c.truth ? "○ true centre   " : "") + "+ detector output   ▭ candidate", 10, H - 11);
+    $("#qg-vlabel").textContent = "Probe frame";
+    $("#qg-vmeta").textContent = c.label + " · " + (vw === 640 ? "rows 90–390" : vw + " × " + vh + " px crop");
+  };
+
+  const drawWindow = (key, m) => {
+    const c = CASES[key], d = run(key)[m];
+    const W = view.width, H = view.height, L = 46, R = 14, T = 16, B = 36;
+    const ink = css("--muted", "#8f8f8f"), rule = css("--rule", "#ebebeb"), acc = css("--accent", "#2f8a57"), text = css("--text-2", "#525252");
+    vctx.fillStyle = css("--card", "#fff"); vctx.fillRect(0, 0, W, H);
+    const [lo, hi] = c.range;
+    const X = (i) => L + (i / 14) * (W - L - R), Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    vctx.font = "18px ui-monospace,monospace"; vctx.lineWidth = 1;
+    vctx.strokeStyle = rule; vctx.fillStyle = ink;
+    for (let v = Math.ceil(lo / 2) * 2; v <= hi; v += 2) { vctx.beginPath(); vctx.moveTo(L, Y(v)); vctx.lineTo(W - R, Y(v)); vctx.stroke(); vctx.fillText(String(v), 6, Y(v) + 4); }
+    if (d.band) {
+      vctx.fillStyle = "rgba(47,138,87,.10)";
+      vctx.fillRect(L, Y(d.band.mx + d.band.hx), W - L - R, Y(d.band.mx - d.band.hx) - Y(d.band.mx + d.band.hx));
+    }
+    vctx.setLineDash([5, 5]); vctx.strokeStyle = text; vctx.lineWidth = 1.5;
+    vctx.beginPath(); vctx.moveTo(L, Y(c.truth)); vctx.lineTo(W - R, Y(c.truth)); vctx.stroke(); vctx.setLineDash([]);
+    vctx.fillStyle = text; vctx.textAlign = "right"; vctx.fillText(key === "moving" ? "newest " + c.truth : "true " + c.truth, W - R, Y(c.truth) - 6); vctx.textAlign = "left";
+    d.points.forEach((q, i) => {
+      const x = X(i), y = Y(q.x);
+      vctx.beginPath(); vctx.arc(x, y, 5, 0, Math.PI * 2);
+      if (q.kept) { vctx.fillStyle = acc; vctx.fill(); }
+      else { vctx.strokeStyle = "#c0392b"; vctx.lineWidth = 2; vctx.beginPath(); vctx.moveTo(x - 5, y - 5); vctx.lineTo(x + 5, y + 5); vctx.moveTo(x + 5, y - 5); vctx.lineTo(x - 5, y + 5); vctx.stroke(); }
+    });
+    if (d.mean) {
+      const y = Y(d.mean[0]);
+      vctx.strokeStyle = d.stable ? "#c0392b" : ink; vctx.lineWidth = 2; if (!d.stable) vctx.setLineDash([2, 4]);
+      vctx.beginPath(); vctx.moveTo(L, y); vctx.lineTo(W - R, y); vctx.stroke(); vctx.setLineDash([]);
+      vctx.fillStyle = d.stable ? "#c0392b" : ink;
+      vctx.fillText((d.stable ? "output " : "not output ") + d.mean[0].toFixed(1), L + 6, y - 6);
+    }
+    vctx.fillStyle = ink;
+    vctx.fillText("frame 1", L, H - 10); vctx.textAlign = "right"; vctx.fillText("frame 15", W - R, H - 10);
+    vctx.textAlign = "center"; vctx.fillText("● kept   ✕ rejected   ▬ MAD band", (L + W - R) / 2, H - 10); vctx.textAlign = "left";
+    $("#qg-vlabel").textContent = "Sample window";
+    $("#qg-vmeta").textContent = c.label;
+  };
+
+  const draw = (animate) => {
     const c = CASES[cur];
-    const st = fix.checked ? c.after : c.before;
-    const w = 560, h = 150, left = 44, right = 540, mid = (left + right) / 2;
-    const span = 10;
-    const x = (v) => mid + (v / span) * ((right - left) / 2);
-    let svg = '<line x1="' + left + '" y1="96" x2="' + right + '" y2="96" stroke="var(--rule)"/>';
-    svg += '<line x1="' + mid + '" y1="18" x2="' + mid + '" y2="112" stroke="var(--faint)" stroke-dasharray="4 4"/>';
-    svg += '<text x="' + mid + '" y="132" text-anchor="middle">true centre</text>';
-    svg += '<text x="' + left + '" y="132">−10 px</text><text x="' + right + '" y="132" text-anchor="end">+10 px</text>';
-    c.offsets.forEach((o, i) => {
-      const bad = st.verdict.includes("wrong") || c === CASES.reflection;
-      const cx = x(o), cy = 96 - (i % 5) * 13 + 26;
-      svg += '<circle class="dot' + (bad ? ' bad' : '') + '" cx="' + cx + '" cy="' + cy + '" r="3.2"/>';
-    });
-    plot.innerHTML = svg;
-    chip.textContent = st.verdict;
-    chip.className = "chip " + (st.verdict.startsWith("Accepted") && !st.verdict.includes("wrong") ? "ok" : "no");
-    verdict.textContent = st.reason;
-    const r = raw(c.offsets);
-    nums.textContent = "raw mean " + (r.mean >= 0 ? "+" : "") + r.mean.toFixed(2) + " px · raw spread " + r.sd.toFixed(2) +
-      " px · output mean " + (st.mean || "—") + " · frames dropped " + st.rejected + "/15";
-    gates.innerHTML = st.gates.map(([state, name, why]) =>
-      '<div class="gate ' + state + '"><span class="state">' + state + '</span><span><b>' + name + '</b> <span class="why">— ' + why + '</span></span></div>'
-    ).join("");
+    (c.kind === "frame" ? drawFrame : drawWindow)(cur, mode);
+    const rows = stagesFor(cur, mode);
+    const MARK = { pass: "✓", stop: "✕", absent: "–", skip: "·" };
+    const SHORT = { "Bright region": "Bright", "Halo and colour": "Halo", "Tracking": "Track", "Frame edge": "Edge", "Window outliers": "Outliers", "Rejection cap": "Cap", "Stillness": "Still" };
+    if (picked < 0 || picked >= rows.length) {
+      const stop = rows.findIndex((r) => r[0] === "stop"), absent = rows.findIndex((r) => r[0] === "absent");
+      picked = stop >= 0 ? stop : absent >= 0 ? absent : rows.length - 1;
+    }
+    const cell = ([st, name, , , tag], i) =>
+      '<button type="button" class="cell ' + st + '" data-i="' + i + '" aria-pressed="' + (i === picked) + '"><span class="m">' + MARK[st] + '</span><span class="n">' +
+      SHORT[name] + '</span><span class="t">' + (tag ? tag.replace("added in ", "+") : "") + "</span></button>";
+    pipe.innerHTML = '<div class="grp"><span>Per frame</span><div class="cells">' + rows.slice(0, 4).map(cell).join("") +
+      '</div></div><div class="grp"><span>Per 0.5 s window</span><div class="cells">' + rows.slice(4).map((r, i) => cell(r, i + 4)).join("") + "</div></div>";
+    const [pst, pname, prule, pout, ptag] = rows[picked];
+    const det = $("#qg-detail");
+    det.className = "detail " + pst;
+    det.innerHTML = "<b>" + pname + '</b><span class="rule">' + prule + (ptag ? " · " + ptag : "") + '</span><span class="out">' +
+      (pst === "absent" ? "this gate did not exist yet: " : "") + pout + "</span>";
+    const [tone, chip, text, badges, msg] = verdictFor(cur, mode);
+    $("#qg-chip").textContent = chip;
+    $("#qg-chip").className = "chip " + tone;
+    $("#qg-verdict").textContent = text;
+    $("#qg-sees").innerHTML = '<span>Operator sees</span><span class="app">' + badges.map(([t, s]) => '<span class="badge ' + t + '">' + s + "</span>").join(" ") + "</span><code>" + msg + "</code>";
+    $("#qg-story-h").textContent = "What " + c.issue + " found";
+    $("#qg-story").textContent = c.story;
+    $("#qg-fix").textContent = c.fix;
+    clearTimeout(timer);
+    if (animate && !reduce) {
+      const items = [...pipe.querySelectorAll(".cell")];
+      const stop = items.findIndex((li) => li.classList.contains("stop"));
+      items.forEach((li) => li.classList.add("hidden"));
+      let i = 0;
+      const step = () => { if (i < items.length) { items[i++].classList.remove("hidden"); timer = setTimeout(step, i - 1 === stop ? 260 : 90); } };
+      step();
+    }
   };
 
-  for (const b of qg.querySelectorAll(".scenarios button")) {
-    b.addEventListener("click", () => {
-      cur = b.dataset.case;
-      for (const x of qg.querySelectorAll(".scenarios button")) x.setAttribute("aria-pressed", String(x === b));
-      draw();
+  const tabs = [...qg.querySelectorAll('[role="tab"]')];
+  const select = (b, focus) => {
+    for (const t of tabs) { const on = t === b; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; }
+    if (focus) b.focus();
+    cur = b.dataset.case;
+    picked = -1;
+    draw(true);
+  };
+  tabs.forEach((b, i) => {
+    b.addEventListener("click", () => select(b, false));
+    b.addEventListener("keydown", (ev) => {
+      const s = ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : 0;
+      if (s) { ev.preventDefault(); select(tabs[(i + s + tabs.length) % tabs.length], true); }
+      else if (ev.key.toLowerCase() === "f") setMode(mode === "before" ? "after" : "before");
     });
-  }
-  fix.addEventListener("change", draw);
-  draw();
+  });
+  const modes = [...qg.querySelectorAll("[data-mode]")];
+  const setMode = (m) => {
+    mode = m;
+    picked = -1;
+    for (const b of modes) b.setAttribute("aria-pressed", String(b.dataset.mode === m));
+    draw(true);
+  };
+  for (const b of modes) b.addEventListener("click", () => setMode(b.dataset.mode));
+  pipe.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".cell");
+    if (!b) return;
+    picked = +b.dataset.i;
+    draw(false);
+  });
+  draw(false);
+}
 }

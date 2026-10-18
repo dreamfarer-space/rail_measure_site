@@ -65,9 +65,24 @@ main{grid-column:2}
 .fig svg,.fig canvas{display:block;width:100%;height:auto}
 .fig .side{position:absolute;top:36%;left:calc(100% + var(--gap));width:var(--rail);font-size:11.5px;line-height:1.7;color:var(--muted)}
 .fig .side kbd{font-size:10.5px;padding:1px 4px}
+.fig .side .s-hint{margin:0 0 4px}
+.fig .side .s-keys{margin:0 0 3px;display:flex;flex-wrap:wrap;align-items:center;gap:3px 4px}
+.fig .side .s-group{margin-top:12px;padding-top:10px;border-top:1px solid var(--rule)}
+.fig .side .s-group>span{display:block;font:10px/1.5 var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.fig .side dl.s-read{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;margin:0;font:11px/1.6 var(--mono)}
+.fig .side dl.s-read dt{color:var(--muted);font-family:var(--sans)}
+.fig .side dl.s-read dd{margin:0;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fig .side dl.s-read dd.ok{color:var(--accent)}
+.fig .side dl.s-read dd.bad{color:#c0392b}
+.fig .side .s-seg{display:inline-flex;padding:2px;border-radius:7px;background:var(--well)}
+.fig .side .s-seg button{appearance:none;border:0;background:none;border-radius:5px;padding:3px 9px;font:11.5px/1.5 var(--sans);color:var(--text-2);cursor:pointer}
+.fig .side .s-seg button:hover:not(:disabled){background:var(--card);color:var(--ink);box-shadow:0 0 0 1px var(--rule)}
+.fig .side .s-seg button:disabled{color:var(--faint);cursor:default}
+.fig .side .s-seg kbd{font-size:9.5px;padding:0 3px;margin-left:4px;background:none;color:var(--faint)}
 .fig .readout{color:var(--ink);font:11.5px/1.7 var(--mono);margin-top:8px;font-variant-numeric:tabular-nums}
-.fig-cap{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px}
-.fig-cap b{font-weight:500;color:var(--text-2)}
+.fig-cap{color:var(--muted);font-size:11.5px;line-height:1.55;margin:-24px 0 34px;text-wrap:pretty}
+.fig-cap b{font-weight:500;color:var(--text-2);margin-right:4px}
+.fig-cap code{font-size:10.5px}
 .pager{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--rule);margin-top:90px;padding-top:18px;font-size:13px}
 .pager a{text-decoration:none;color:var(--text-2)}
 .pager a:hover{color:var(--ink)}

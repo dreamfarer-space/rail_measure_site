@@ -123,3 +123,19 @@ test("spatial maths still hold", () => {
   assert.equal(Math.round(clearanceMm(168, 56 + OBSTACLE_HEIGHT, 3.2)), 326);
   assert.equal(distanceMm({ x: 0, y: 0 }, { x: 3, y: 4 }, 10), 50);
 });
+
+test("detector port reproduces the #20 and #25 probes", async () => {
+  const S = await import("./figures/spotcore.mjs");
+  const white = S.toU8(S.fillRect(S.paperFrame(640, 480, 0, [170, 178, 172], 0), 300, 200, 320, 220));
+  const old = S.detectSpot(white, null, S.BEFORE_20.detect);
+  assert.deepEqual([old.x, old.y], [309.5, 209.5]);
+  assert.ok(S.detectSpot(white).none);
+  const edge = S.detectSpot(S.toU8(S.addSpot(S.paperFrame(), 2, 240, 6, [5, 60, 10])));
+  assert.equal(edge.reject_reason, "clipped");
+  const moving = Array.from({ length: 15 }, (_, i) => [100 + i * 0.03, [100 + i, 200]]);
+  assert.equal(S.averageSpot(moving, 100.42, S.BEFORE_20.average).mean[0], 107);
+  assert.equal(S.averageSpot(moving, 100.42).reason, "drift");
+  const vib = Array.from({ length: 15 }, (_, i) => [100 + i / 30, [i % 3 === 0 ? 324 : 318, 240]]);
+  assert.ok(S.averageSpot(vib, 100 + 14 / 30, S.BEFORE_25.average).stable);
+  assert.equal(S.averageSpot(vib, 100 + 14 / 30).reason, "outliers");
+});

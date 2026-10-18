@@ -55,21 +55,31 @@ const EMBED_EN = {
   "合格": "within tolerance",
 };
 const localize = (text) => Object.entries(EMBED_EN).reduce((acc, [a, b]) => acc.split(a).join(b), text);
+// The embed writes one line of text into [data-readout]; the side rail shows it as label/value rows.
+const PRINCIPLE_READOUT_LINE = "if (readout.textContent !== text) readout.textContent = text;";
+const PRINCIPLE_READOUT_ROWS =
+  'if (readout.dataset.text !== text) { readout.dataset.text = text; readout.innerHTML = "<dt>Height</dt><dd>" + H.toFixed(2) + " m</dd><dt>dX</dt><dd>" + fmt(dx) + " mm</dd><dt>dY</dt><dd>" + fmt(dy) + " mm</dd><dt>Status</dt><dd class=\\"" + (over ? "bad" : "ok") + "\\">" + (over ? "超差" : "合格") + "</dd>"; }';
+const principleScript = () => {
+  if (!fig.script.includes(PRINCIPLE_READOUT_LINE)) throw new Error("principle readout line changed");
+  return localize(fig.script.replace(PRINCIPLE_READOUT_LINE, PRINCIPLE_READOUT_ROWS));
+};
 
 export const FIGURES = {
   principle: {
-    html: `<figure class="fig iso fig" data-theme="light">${localize(fig.stage)}<div class="side"><div>Move the pointer up and down to drive the cart</div><div><kbd>↑</kbd> <kbd>↓</kbd> per metre · <kbd>Home</kbd> reference</div><div class="readout" data-readout aria-live="off"></div></div></figure>
+    html: `<figure class="fig iso fig" data-theme="light">${localize(fig.stage)}<div class="side"><p class="s-hint">Move the pointer up and down to drive the cart</p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> 1 m</p><p class="s-keys"><kbd>Home</kbd> back to the datum</p><div class="s-group"><span>At the cart</span><dl class="s-read" data-readout aria-live="off"></dl></div></div></figure>
 <p class="fig-cap"><b>Principle</b> · 20 m compressed to 200 units, lateral offset exaggerated 3×, numbers illustrative</p>`,
     css: fig.css,
-    script: localize(fig.script),
+    script: principleScript(),
   },
   quality: {
-    html: `<figure class="fig">${qualityMarkup}<p class="fig-cap"><b>Simulation</b> · frames and readings are the cases documented in issues #20 and #25; the gates are the current defaults</p></figure>`,
+    html: `<figure class="fig">${qualityMarkup}</figure>
+<p class="fig-cap"><b>Probes</b> · the frames and windows of issues #20 and #25, run through a JavaScript port of <code>detect_spot()</code> and <code>average_spot_detail()</code>, once with the rules before each fix and once with the current defaults</p>`,
     css: qualityCss,
     script: qualityScript,
   },
   spotlab: {
-    html: `<figure class="fig">${spotMarkup}<p class="fig-cap"><b>Linked simulation</b> · the left canvas is generated, the right panel is a replica of the operator view; neither is a camera feed</p></figure>`,
+    html: `<figure class="fig">${spotMarkup}</figure>
+<p class="fig-cap"><b>Linked simulation</b> · left, a synthetic frame with the test-suite Gaussian spot; right, the operator panel's target view with its labels translated, driven by a port of the detector; neither is a camera feed</p>`,
     css: spotCss,
     script: spotScript,
   },
@@ -274,7 +284,7 @@ export function buildAll() {
     const { meta, body } = parseFrontmatter(raw);
     const { html, toc } = renderMarkdown(body);
     const extraCss = cfg.figures.map((k) => FIGURES[k].css).join("\n") + (cfg.strip ? stripCss : "");
-    const extraScript = [...new Set(cfg.figures.map((k) => FIGURES[k].script))].join("\n");
+    const extraScript = [...new Set(cfg.figures.flatMap((k) => FIGURES[k].script))].join("\n");
     const scriptFile = `${slug}.js`;
     if (extraScript) writeFileSync(join(HERE, scriptFile), extraScript);
     const prevSlug = ORDER[idx - 1], nextSlug = ORDER[idx + 1];

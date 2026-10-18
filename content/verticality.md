@@ -28,7 +28,7 @@ intensity weighting preserves subpixel accuracy across saturated cores where bin
 
 [[figure:spotlab]]
 
-The figure above links a synthetic Gaussian spot to a replica of the operator panel. Adjust beam radius, green amplitude, and sensor noise; as the spot moves, the panel follows and shows a simplified detector's segmentation, halo count, and coordinates. It is a teaching replica, not the production pipeline.
+On the left is the frame the camera would deliver: the Gaussian spot of the test suite on noisy paper, its core magnified, and the green channel along the row through the centroid. Pixels above 250 are clipped flat, yet a Gaussian fitted to the unsaturated halo alone lands on the same centre as the intensity-weighted centroid. On the right is the target view of the operator panel, drawn the way the app draws it: millimetre rings that zoom to the offset, the reference with its ±3 mm box, the badges and the dX/dY tiles. Both sides run on a JavaScript port of `detect_spot()`; drag the spot to the frame edge and the panel marks it clipped.
 
 ## Quality gates {#quality-gates}
 
@@ -43,6 +43,8 @@ However, comprehensive synthetic probe benchmarks conducted in Issue #20 reveale
 - A 0.42 s window of 15 frames moving from x = 100 to 114 passed all filters (mean 107, std 4.47 px), lagging 7 px (about 1.80 mm at default scale) behind the newest position. Linear drift and jitter checks now reject moving windows.
 
 The `elongated` gate exists to detect deformed spots but remains disabled by default. Saturation above `max_saturated_frac` warns overexposed, but the measurement remains usable if the halo is preserved.
+
+Each tab below rebuilds one probe from the issues. Start on *Before the fix* to see the wrong reading go through, then switch to *Current gates* to see which gate stops it and what the operator is told instead.
 
 [[figure:quality]]
 
