@@ -80,5 +80,3 @@ Furthermore, the standard deviation computed across the 0.5 s window reflects sh
 ::: note 2
 temporal window stability confirms that the inspection cart is motionless but cannot detect fixed optical biases from asymmetric halos or uncalibrated lens regions
 :::
-
-> A stable window means the filtered samples agree. It does not prove the cart is still, and it cannot detect a fixed optical bias.

@@ -83,5 +83,3 @@ The visual classifier functions as a whole-frame image screener; it does not out
 Furthermore, the model only recognizes the eight discrete classes present in its training distribution. Unusual structural anomalies, uncataloged electrical faults, or novel component designs will either be flagged as undetermined or missed entirely.
 
 Most critically, negative classification does not constitute regulatory acceptance: the absence of a defect alarm cannot be used as legal proof of hoistway integrity. All screening outputs must be verified and signed off by a licensed human inspector.
-
-> Whole-frame classification flags suspicious hardware conditions to direct inspector focus but cannot substitute for certified hands-on examination.

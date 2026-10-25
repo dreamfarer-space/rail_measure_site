@@ -68,7 +68,7 @@ const principleScript = () => {
 
 export const FIGURES = {
   principle: {
-    html: `<figure class="fig iso fig" data-theme="light">${localize(fig.stage)}<div class="side"><p class="s-hint">Move the pointer up and down to drive the cart</p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> 1 m</p><p class="s-keys"><kbd>Home</kbd> back to the datum</p><div class="s-group"><span>At the cart</span><dl class="s-read" data-readout aria-live="off"></dl></div></div></figure>
+    html: `<figure class="fig iso fig" data-theme="light">${localize(fig.stage)}<div class="side"><p class="s-hint"><span class="h-mouse">Move the pointer up and down to drive the cart</span><span class="h-touch">Tap high or low on the figure to drive the cart</span></p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> 1 m</p><p class="s-keys"><kbd>Home</kbd> back to the datum</p><div class="s-group"><span>At the cart</span><dl class="s-read" data-readout aria-live="off"></dl></div></div></figure>
 <p class="fig-cap"><b>Principle</b> · 20 m compressed to 200 units, lateral offset exaggerated 3×, numbers illustrative</p>`,
     css: fig.css,
     script: principleScript(),
@@ -98,7 +98,7 @@ export const FIGURES = {
     script: spatialScript,
   },
   "cart-b": {
-    html: `<figure class="fig iso fig" data-theme="light">${cartB.stage}<div class="side"><p class="s-hint">Point at the figure to aim the camera</p><p class="s-keys"><kbd>←</kbd><kbd>→</kbd> pan</p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> tilt · <kbd>Home</kbd> level</p><div class="s-group"><span>Camera</span><dl class="s-read" data-sp-readout aria-live="off"></dl></div></div></figure>
+    html: `<figure class="fig iso fig" data-theme="light">${cartB.stage}<div class="side"><p class="s-hint"><span class="h-mouse">Point at the figure to aim the camera</span><span class="h-touch">Tap or swipe sideways on the figure to aim the camera</span></p><p class="s-keys"><kbd>←</kbd><kbd>→</kbd> pan</p><p class="s-keys"><kbd>↑</kbd><kbd>↓</kbd> tilt · <kbd>Home</kbd> level</p><div class="s-group"><span>Camera</span><dl class="s-read" data-sp-readout aria-live="off"></dl></div></div></figure>
 <p class="fig-cap"><b>Cart B</b> · drawn from the cart itself; servo ranges from <code>web/src/lib/robot.ts</code>, field of view of the OAK-D Pro W; the car top is drawn closer than in a real shaft, and distances use the drawing scale</p>`,
     css: cartB.css + ".sp-stage{cursor:crosshair}",
     script: `(() => {
@@ -116,9 +116,9 @@ ${cartB.script}
 .robots a{display:block;text-decoration:none}
 .robots svg{transition:transform .4s cubic-bezier(.32,.72,0,1)}
 .robots a:hover svg{transform:translateY(-3px)}
-.robots p{margin:4px 0 0;font-size:12.5px;line-height:1.45;color:var(--text-2)}
+.robots p{margin:4px 0 0;font-size:14.5px;line-height:1.4;color:var(--text-2)}
 .robots p b{font-weight:600;color:var(--ink)}
-.robots p span{display:block;font-size:11.5px;color:var(--muted)}
+.robots p span{display:block;font:italic 14px/1.4 var(--serif);color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.robots svg{transition:none}}
 `,
     script: "",
@@ -127,12 +127,12 @@ ${cartB.script}
     html: `<figure class="fig">${gallery}<p class="fig-cap"><b>Samples</b> · eight training photographs, resized to 900 px, watermarks removed; the caption keeps the source id. Labels printed on the equipment itself are part of the equipment, not site copy.</p></figure>`,
     css: `
 .gallery .classes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 16px}
-.gallery .classes button{appearance:none;border:0;background:var(--well);color:var(--text-2);border-radius:7px;padding:7px 8px;font:12.5px/1.4 var(--sans);cursor:pointer;transition:background .15s,color .15s;text-align:left}
+.gallery .classes button{appearance:none;border:0;background:var(--well);color:var(--text-2);border-radius:7px;padding:7px 9px;font:14.5px/1.3 var(--sans);cursor:pointer;transition:background .15s,color .15s;text-align:left}
 .gallery .classes button:hover{background:var(--well-2);color:var(--ink)}
 .gallery .classes button[aria-checked="true"]{background:var(--ink);color:var(--ground)}
 .gallery .sample{margin:0}
 .gallery .sample img{display:block;width:100%;height:auto;border-radius:10px;background:var(--well);box-shadow:0 0 0 1px var(--rule)}
-.gallery .sample figcaption{font-size:12px;color:var(--muted);margin-top:8px}
+.gallery .sample figcaption{font:italic 15px var(--serif);color:var(--muted);margin-top:8px}
 @media (max-width:560px){.gallery .classes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `,
     script: `
@@ -238,11 +238,11 @@ function renderMarkdown(md) {
       const body = rows.slice(1).filter((r) => !/^\|[\s:|-]+\|$/.test(r)).map(cells);
       const isNum = (c) => /^[\d.,%±+\-–—\s]+$/.test(c) && /\d/.test(c);
       out.push(
-        `<table class="table"><thead><tr>${head.map((c) => `<th scope="col">${inline(c)}</th>`).join("")}</tr></thead><tbody>${body
+        `<div class="table-wrap" style="--cols:${head.length}"><table class="table"><thead><tr>${head.map((c) => `<th scope="col">${inline(c)}</th>`).join("")}</tr></thead><tbody>${body
           .map((r) => `<tr>${r.map((c, i) => i === 0 && r.length > 1
             ? `<th scope="row">${inline(c)}</th>`
             : `<td${isNum(c) ? ' class="num"' : ""}>${inline(c)}</td>`).join("")}</tr>`)
-          .join("")}</tbody></table>`
+          .join("")}</tbody></table></div>`
       );
       continue;
     }

@@ -85,5 +85,3 @@ Finally, spatial measurements serve as a screening tool to highlight potential s
 ::: note 2
 stereo depth uncertainty scales quadratically with distance requiring critical long-range dimensions to be verified with physical tape measures
 :::
-
-> A static clearance measurement records geometry at rest and does not model dynamic counterweight overtravel or car buffer compression.

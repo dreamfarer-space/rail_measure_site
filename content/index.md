@@ -57,5 +57,3 @@ the onboard rule engine generates the complete inspection summary without callin
 The rail_measure system is engineered strictly as an objective field screening tool rather than an automatic acceptance authority. It does not replace the national-standard tolerance decision for a specific guide rail model and measurement method, which remains the sole legal responsibility of a certified human inspector.
 
 The onboard screening report flags out-of-tolerance displacements, occluded clearance zones, and suspicious surface patterns to guide inspector scrutiny. All flagged anomalies require direct visual confirmation, and no automated alarm constitutes a formal declaration of hoistway compliance.
-
-> A field screening tool organizes physical hoistway geometry into verifiable sensor records so that inspectors can make decisions based on repeatable data rather than manual guesswork.

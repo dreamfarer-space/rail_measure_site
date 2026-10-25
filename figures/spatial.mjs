@@ -30,13 +30,13 @@ export const spatialCss = `
 .spx .iso3 .refp{fill:var(--sp-blue);fill-opacity:.16;stroke:var(--sp-blue);stroke-width:.8}
 .spx .iso3 .drop{stroke-width:.9;fill:none;opacity:.8}
 .spx .iso3 .low{stroke:var(--ink);stroke-width:1.2;fill:var(--card)}
-.spx .chart text{font:9.5px var(--mono);fill:var(--muted)}
-.spx .chart .axis{stroke:var(--rule);stroke-width:1}
-.spx .chart .base{stroke:var(--sp-blue);stroke-width:2}
-.spx .chart .prof{fill:color-mix(in srgb,var(--sp-blue) 10%,transparent);stroke:var(--ink);stroke-width:1.2;stroke-linejoin:round}
+.spx .chart text{font:14px var(--mono);fill:var(--muted)}
+.spx .chart .axis{stroke:var(--rule);stroke-width:1.4}
+.spx .chart .base{stroke:var(--sp-blue);stroke-width:2.6}
+.spx .chart .prof{fill:color-mix(in srgb,var(--sp-blue) 10%,transparent);stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round}
 .spx .chart .unk{fill:url(#spx-hatch);stroke:var(--faint);stroke-width:.6}
-.spx .chart .tri{fill:color-mix(in srgb,var(--sp-blue) 8%,transparent);stroke:var(--sp-blue);stroke-width:1;stroke-dasharray:4 3}
-.spx .chart .hyp{stroke:var(--ink);stroke-width:1.6}
+.spx .chart .tri{fill:color-mix(in srgb,var(--sp-blue) 8%,transparent);stroke:var(--sp-blue);stroke-width:1.4;stroke-dasharray:4 3}
+.spx .chart .hyp{stroke:var(--ink);stroke-width:2.2}
 .spx .chart .val{fill:var(--ink)}
 :root{--sp-blue:#3e63dd}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--sp-blue:#6b9bff}}
@@ -64,7 +64,7 @@ export const spatialCss = `
 .spx .badge{display:inline-flex;align-items:center;min-height:18px;padding:0 6px;border-radius:999px;font-size:10px;font-weight:550;color:var(--a-text-3);white-space:nowrap}
 .spx .badge.ok{background:var(--a-ok-soft);color:var(--a-ok)}
 .spx .badge.bad{background:var(--a-bad-soft);color:var(--a-bad)}
-.spx .hintbar{margin:0;padding:5px 9px;font-size:10.5px;color:var(--a-text-2);border-bottom:1px solid var(--a-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spx .hintbar{margin:0;padding:5px 9px;font-size:10.5px;color:var(--a-text-2);border-bottom:1px solid var(--a-line);text-wrap:pretty}
 .spx .stage{position:relative;background:#0c0c0e;touch-action:none;cursor:crosshair;outline:none}
 .spx .stage:focus-visible{box-shadow:inset 0 0 0 2px var(--a-accent)}
 .spx .stage .ep circle{fill:none;stroke:#fff;stroke-width:2}
@@ -101,9 +101,9 @@ export const spatialCss = `
 .spx .grid i.low{box-shadow:inset 0 0 0 2px var(--a-text)}
 .spx .legend{display:flex;flex-wrap:wrap;gap:8px;font-size:9.5px;color:var(--a-text-3)}
 .spx .legend i{display:inline-block;width:9px;height:7px;border-radius:1px;margin-right:3px;vertical-align:-1px}
-.spx .side label.rng{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:2px 6px;align-items:center}
+.spx .side label.rng{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 6px;align-items:center}
 .spx .side label.rng input{grid-column:1/3;width:100%;accent-color:var(--accent);margin:0}
-.spx .side label.rng output{font:10.5px var(--mono);text-align:right;color:var(--text-2)}
+.spx .side label.rng output{font:10.5px var(--mono);text-align:right;color:var(--text-2);white-space:nowrap}
 .spx .side label.chk{display:flex;gap:6px;align-items:center;margin-top:6px}
 .spx .side label.chk input{accent-color:var(--accent);margin:0}
 @media (max-width:760px){
@@ -115,6 +115,7 @@ export const spatialCss = `
   .spx .side .s-group:first-of-type{margin-top:0;padding-top:0;border-top:0}
   .spx .side dl.s-read{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:0 8px;font-size:10.5px}
 }
+@media (max-width:520px){.spx .side dl.s-read{grid-template-columns:auto minmax(0,1fr)}}
 `;
 
 const appHead = (mode) => `<header class="head"><div class="seg" aria-hidden="true"><span${mode === "two" ? ' class="on"' : ""}>Two points</span><span${mode === "clear" ? ' class="on"' : ""}>Car-top clearance</span></div><div class="badges"><span class="badge ok" data-k="depth">Depth ready</span><span class="badge">14.6 FPS</span></div></header>`;
@@ -123,7 +124,7 @@ export const spatialTwoMarkup = `
 <div class="spx" data-spx="two" id="sp-two">
   <div class="col">
     <div><p class="lbl"><b>Shaft</b><span>same model · 1 grid square = 500 mm</span></p><svg class="iso3" data-k="iso" viewBox="0 0 400 380" role="img" aria-label="Shaft view: the camera, the rays to P1 and P2, and the distance split along gravity"></svg></div>
-    <div><p class="lbl"><b>Along gravity</b><span>IMU vertical</span></p><svg class="chart" data-k="chart" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid meet" role="img" aria-label="The distance split into a vertical and a horizontal part"></svg></div>
+    <div><p class="lbl"><b>Along gravity</b><span>IMU vertical</span></p><svg class="chart" data-k="chart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid meet" role="img" aria-label="The distance split into a vertical and a horizontal part"></svg></div>
   </div>
   <div class="app" aria-label="Replica of the operator panel, two-point mode">
     <p class="lbl"><b>Operator panel</b><span>replica · labels translated</span></p>
@@ -148,7 +149,7 @@ export const spatialClearMarkup = `
 <div class="spx" data-spx="clear" id="sp-clear">
   <div class="col">
     <div><p class="lbl"><b>Shaft</b><span>same model · 1 grid square = 500 mm</span></p><svg class="iso3" data-k="iso" viewBox="0 0 400 380" role="img" aria-label="Shaft view: the reference patch on the car top and the lowest structure found in each grid cell"></svg></div>
-    <div><p class="lbl"><b>Clearance profile</b><span>lowest per grid column</span></p><svg class="chart" data-k="chart" viewBox="0 0 400 150" role="img" aria-label="Lowest overhead profile across the width, unknown columns hatched"></svg></div>
+    <div><p class="lbl"><b>Clearance profile</b><span>lowest per grid column</span></p><svg class="chart" data-k="chart" viewBox="0 0 400 260" role="img" aria-label="Lowest overhead profile across the width, unknown columns hatched"></svg></div>
   </div>
   <div class="app" aria-label="Replica of the operator panel, car-top clearance mode">
     <p class="lbl"><b>Operator panel</b><span>replica · labels translated</span></p>
@@ -305,13 +306,13 @@ if (two) {
     // along gravity: right triangle, hypotenuse D
     const ch = $("chart");
     if (r.ok) {
-      const k = Math.min(110 / Math.max(Math.abs(r.dv), 1), 260 / Math.max(r.dh, 1));
+      const k = Math.min(190 / Math.max(Math.abs(r.dv), 1), 200 / Math.max(r.dh, 1));
       const w = r.dh * k, hgt = Math.abs(r.dv) * k;
-      const x0 = 200 - w / 2, x1 = x0 + w, y0 = r.dv >= 0 ? 75 + hgt / 2 : 75 - hgt / 2, y1 = y0 - r.dv * k;
+      const x0 = 170 - w / 2, x1 = x0 + w, y0 = r.dv >= 0 ? 125 + hgt / 2 : 125 - hgt / 2, y1 = y0 - r.dv * k;
       ch.innerHTML = '<path class="tri" d="M' + f2(x0) + " " + f2(y0) + "L" + f2(x1) + " " + f2(y0) + "L" + f2(x1) + " " + f2(y1) + 'Z"/><path class="hyp" d="M' + f2(x0) + " " + f2(y0) + "L" + f2(x1) + " " + f2(y1) + '"/>' +
-        '<text x="' + f2((x0 + x1) / 2) + '" y="' + f2(y0 + (r.dv >= 0 ? 14 : -6)) + '" text-anchor="middle">horizontal ' + fmt(r.dh) + ' mm</text><text x="' + f2(x1 + 8) + '" y="' + f2((y0 + y1) / 2 + 3) + '">' + (r.dv >= 0 ? "up " : "down ") + fmt(Math.abs(r.dv)) + ' mm</text>' +
-        '<text class="val" x="' + f2((x0 + x1) / 2 - 8) + '" y="' + f2((y0 + y1) / 2 + 3) + '" text-anchor="end">D ' + fmt(r.D) + " mm</text>";
-    } else ch.innerHTML = '<text x="200" y="80" text-anchor="middle">waiting for depth at both points</text>';
+        '<text x="' + f2((x0 + x1) / 2) + '" y="' + f2(y0 + (r.dv >= 0 ? 20 : -9)) + '" text-anchor="middle">horizontal ' + fmt(r.dh) + ' mm</text><text x="' + f2(x1 + 10) + '" y="' + f2((y0 + y1) / 2 + 5) + '">' + (r.dv >= 0 ? "up " : "down ") + fmt(Math.abs(r.dv)) + ' mm</text>' +
+        '<text class="val" x="' + f2((x0 + x1) / 2 - 10) + '" y="' + f2((y0 + y1) / 2 + 5) + '" text-anchor="end">D ' + fmt(r.D) + " mm</text>";
+    } else ch.innerHTML = '<text x="200" y="135" text-anchor="middle">waiting for depth at both points</text>';
     // side rail
     $("side").innerHTML = [r.p, r.q].map((p, i) => "<dt>P" + (i + 1) + "</dt><dd>" + (p.valid ? p.p.map((v) => Math.round(v)).join(", ") : bad(p)) + "</dd>").join("") +
       (r.ok ? "<dt>Noise at P2</dt><dd>±" + (1.2e-6 * r.q.zc * r.q.zc).toFixed(1) + " mm</dd>" : "");
@@ -410,9 +411,9 @@ if (clr) {
     // clearance profile: lowest value per grid column across the width, unknown columns hatched
     const ch = $("chart");
     let s = '<defs><pattern id="spx-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0v5" stroke="var(--faint)" stroke-width="1.6"/></pattern></defs>';
-    const X0 = 40, X1 = 390, Y0 = 128, top = 2400, ky = (Y0 - 12) / top;
+    const X0 = 54, X1 = 392, Y0 = 236, top = 2400, ky = (Y0 - 12) / top;
     s += '<path class="axis" d="M' + X0 + " 12V" + Y0 + '"/>';
-    for (const v of [0, 1000, 2000]) s += '<text x="' + (X0 - 4) + '" y="' + f2(Y0 - v * ky + 3) + '" text-anchor="end">' + v / 1000 + " m</text>";
+    for (const v of [0, 1000, 2000]) s += '<text x="' + (X0 - 6) + '" y="' + f2(Y0 - v * ky + 5) + '" text-anchor="end">' + v / 1000 + " m</text>";
     if (g) {
       const cw = (X1 - X0) / g.cols;
       let prof = "M" + X0 + " " + Y0;
@@ -430,7 +431,7 @@ if (clr) {
         if (g.states.some((row) => row[j] === "unknown")) s += '<rect class="unk" x="' + f2(x) + '" y="12" width="' + f2(cw) + '" height="' + f2(y - 12) + '" opacity=".6"/>';
       }
       s += '<path class="prof" d="' + prof + "L" + X1 + " " + Y0 + 'Z"/>';
-      if (r.ok) { const x = X0 + (r.lowest[1] + 0.5) * cw, y = Y0 - r.min * ky; s += '<path d="M' + f2(x - 7) + " " + f2(y) + "h14M" + f2(x) + " " + f2(y - 7) + 'v14" stroke="var(--ink)" stroke-width="1.4"/><text class="val" x="' + f2(x + 9) + '" y="' + f2(y + 13) + '">' + fmt(r.min) + " mm</text>"; }
+      if (r.ok) { const x = X0 + (r.lowest[1] + 0.5) * cw, y = Y0 - r.min * ky; s += '<path d="M' + f2(x - 7) + " " + f2(y) + "h14M" + f2(x) + " " + f2(y - 7) + 'v14" stroke="var(--ink)" stroke-width="1.4"/><text class="val" x="' + f2(x > 300 ? x - 11 : x + 11) + '" y="' + f2(y + 20) + '"' + (x > 300 ? ' text-anchor="end"' : "") + '>' + fmt(r.min) + " mm</text>"; }
     }
     s += '<path class="base" d="M' + X0 + " " + Y0 + "H" + X1 + '"/>';
     ch.innerHTML = s;

@@ -731,7 +731,7 @@ function tick(now) {
 const run = () => { if (!frame && visible) { last = 0; frame = requestAnimationFrame(tick); } };
 const steer = (h) => {
   touring = false;
-  target = clamp(h, H_MIN - 1, H_REF);
+  target = clamp(h, H_MIN, H_REF);
   clearTimeout(idle);
   idle = setTimeout(() => { touring = !still.matches; clock = 0; run(); }, 4000);
   run();
