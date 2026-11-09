@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+anatomy/real/
+anatomy/verticality/*.mp4
+anatomy/verticality/verticality-demo-cover.png
